@@ -1,0 +1,12 @@
+[project]
+name = "server"
+version = "0.1.0"
+description = "FastAPI Backend Engine"
+dependencies = [
+    "fastapi>=0.110.0",
+    "uvicorn[standard]>=0.28.0",
+    "pydantic-settings>=2.2.0"
+]
+
+[tool.setuptools]
+py-modules = []

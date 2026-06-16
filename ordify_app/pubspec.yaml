@@ -1,0 +1,37 @@
+name: ordify_app
+description: "A new Flutter project."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.12.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+  
+  # 🌐 Cloud Connections
+  supabase_flutter: ^2.14.2
+
+  # 🧠 Central Nervous System State Management
+  flutter_riverpod: ^2.5.0
+
+  # 🧭 Cinematic Routing
+  go_router: ^14.0.0
+
+  # 🎨 Premium UI Pack
+  google_fonts: ^6.2.0
+  google_nav_bar: ^5.0.6
+  dio: ^5.9.2
+  flutter_secure_storage: ^10.3.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true

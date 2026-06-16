@@ -1,0 +1,7 @@
+.env 
+.env.* 
+*.env 
+**/backend/__pycache__/ 
+**/backend/.venv/ 
+**/ordify_app/build/ 
+**/ordify_app/.dart_tool/
