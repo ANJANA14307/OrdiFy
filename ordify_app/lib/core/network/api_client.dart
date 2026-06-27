@@ -1,15 +1,16 @@
-import 'package:dio/dio.dart';
+import 'package:dio/dio.dart' as dio;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'error_handler.dart';
 
 class ApiClient {
-  late final Dio dio;
+  late final dio.Dio dioClient;
 
-  static const String _baseUrl = 'http://192.168.1.39:8000';
+  static const String _baseUrl = 'http://192.168.1.38:8000';
+
   ApiClient() {
-    dio = Dio(
-      BaseOptions(
+    dioClient = dio.Dio(
+      dio.BaseOptions(
         baseUrl: _baseUrl,
         connectTimeout: const Duration(seconds: 15),
         receiveTimeout: const Duration(seconds: 15),
@@ -20,8 +21,8 @@ class ApiClient {
       ),
     );
 
-    dio.interceptors.add(
-      InterceptorsWrapper(
+    dioClient.interceptors.add(
+      dio.InterceptorsWrapper(
         onRequest: (options, handler) async {
           final session = Supabase.instance.client.auth.currentSession;
           final token = session?.accessToken;
@@ -32,7 +33,7 @@ class ApiClient {
 
           return handler.next(options);
         },
-        onError: (DioException error, handler) {
+        onError: (dio.DioException error, handler) {
           ErrorHandler.handle(error);
           return handler.next(error);
         },
@@ -40,20 +41,43 @@ class ApiClient {
     );
   }
 
-  Future<Response> get(String path) {
-    return dio.get(path);
+  Future<dio.Response> get(String path) {
+    return dioClient.get(path);
   }
 
-  Future<Response> post(String path, {dynamic data}) {
-    return dio.post(path, data: data);
+  Future<dio.Response> post(String path, {dynamic data}) {
+    return dioClient.post(path, data: data);
   }
 
-  Future<Response> put(String path, {dynamic data}) {
-    return dio.put(path, data: data);
+  Future<dio.Response> patch(String path, {dynamic data}) {
+    return dioClient.patch(path, data: data);
   }
 
-  Future<Response> delete(String path) {
-    return dio.delete(path);
+  Future<dio.Response> put(String path, {dynamic data}) {
+    return dioClient.put(path, data: data);
+  }
+
+  Future<dio.Response> delete(String path) {
+    return dioClient.delete(path);
+  }
+
+  Future<dio.Response> uploadProductImage(String filePath) async {
+    final fileName = filePath.split('/').last;
+
+    final formData = dio.FormData.fromMap({
+      'file': await dio.MultipartFile.fromFile(
+        filePath,
+        filename: fileName,
+      ),
+    });
+
+    return dioClient.post(
+      '/products/upload-image',
+      data: formData,
+      options: dio.Options(
+        contentType: 'multipart/form-data',
+      ),
+    );
   }
 }
 

@@ -1,0 +1,8 @@
+fastapi
+uvicorn[standard]
+pydantic-settings
+supabase
+httpx
+cloudinary
+python-multipart
+razorpay

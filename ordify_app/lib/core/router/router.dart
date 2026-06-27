@@ -13,6 +13,7 @@ import '../../presentation/workspace/orders_screen.dart';
 import '../../presentation/workspace/inventory_screen.dart';
 import '../../presentation/workspace/customers_screen.dart';
 import '../../presentation/workspace/ai_tools_screen.dart';
+import '../../presentation/workspace/dm_inbox_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authProvider);
@@ -50,6 +51,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/register',
         builder: (context, state) => const RegisterScreen(),
+      ),
+      GoRoute(
+        path: '/instagram-dms',
+        builder: (context, state) => const DMInboxScreen(),
       ),
 
       StatefulShellRoute.indexedStack(
