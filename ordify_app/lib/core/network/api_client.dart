@@ -6,7 +6,7 @@ import 'error_handler.dart';
 class ApiClient {
   late final dio.Dio dioClient;
 
-  static const String _baseUrl = 'http://192.168.1.38:8000';
+  static const String _baseUrl = 'http://192.168.137.1:8000';
 
   ApiClient() {
     dioClient = dio.Dio(

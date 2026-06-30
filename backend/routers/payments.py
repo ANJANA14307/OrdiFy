@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from typing import Any, Optional
+import json
 
-import razorpay
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from pydantic import BaseModel
 
@@ -13,7 +13,7 @@ from core.supabase import supabase
 router = APIRouter(prefix="/payments", tags=["Payments"])
 
 
-class RazorpayCreateLinkRequest(BaseModel):
+class OrderPaymentRequest(BaseModel):
     order_id: str
 
 
@@ -24,7 +24,6 @@ def now_iso() -> str:
 def to_float(value: Any) -> float:
     if value is None:
         return 0.0
-
     try:
         return float(value)
     except Exception:
@@ -34,36 +33,10 @@ def to_float(value: Any) -> float:
 def to_int(value: Any) -> int:
     if value is None:
         return 0
-
     try:
         return int(value)
     except Exception:
         return 0
-
-
-def get_razorpay_client():
-    if not settings.RAZORPAY_KEY_ID or not settings.RAZORPAY_KEY_SECRET:
-        raise HTTPException(
-            status_code=500,
-            detail="Razorpay keys are not configured in .env",
-        )
-
-    return razorpay.Client(
-        auth=(
-            settings.RAZORPAY_KEY_ID,
-            settings.RAZORPAY_KEY_SECRET,
-        )
-    )
-
-
-def require_razorpay_webhook_secret() -> str:
-    if not settings.RAZORPAY_WEBHOOK_SECRET:
-        raise HTTPException(
-            status_code=500,
-            detail="RAZORPAY_WEBHOOK_SECRET is not configured in .env",
-        )
-
-    return settings.RAZORPAY_WEBHOOK_SECRET
 
 
 def fetch_order_for_user(order_id: str, user_id: str):
@@ -76,10 +49,7 @@ def fetch_order_for_user(order_id: str, user_id: str):
     )
 
     if not response.data:
-        raise HTTPException(
-            status_code=404,
-            detail="Order not found",
-        )
+        raise HTTPException(status_code=404, detail="Order not found")
 
     return response.data[0]
 
@@ -126,17 +96,20 @@ def fetch_order_items(order_id: str):
     return response.data or []
 
 
-def get_existing_razorpay_payment(order_id: str, user_id: str):
-    response = (
+def get_latest_payment(order_id: str, user_id: str, gateway: Optional[str] = None):
+    query = (
         supabase.table("payments")
         .select("*")
         .eq("order_id", order_id)
         .eq("user_id", user_id)
-        .eq("gateway", "razorpay")
         .order("created_at", desc=True)
         .limit(1)
-        .execute()
     )
+
+    if gateway:
+        query = query.eq("gateway", gateway)
+
+    response = query.execute()
 
     if not response.data:
         return None
@@ -144,11 +117,29 @@ def get_existing_razorpay_payment(order_id: str, user_id: str):
     return response.data[0]
 
 
+def get_payment_for_user(payment_id: str, user_id: str):
+    response = (
+        supabase.table("payments")
+        .select("*")
+        .eq("id", payment_id)
+        .eq("user_id", user_id)
+        .execute()
+    )
+
+    if not response.data:
+        raise HTTPException(status_code=404, detail="Payment not found")
+
+    return response.data[0]
+
+
 def create_payment_row(
     order: dict[str, Any],
-    payment_link_id: str,
-    payment_link_url: str,
+    gateway: str,
+    gateway_payment_id: str,
     amount: float,
+    currency: str,
+    status: str,
+    payment_link_url: Optional[str] = None,
 ):
     response = (
         supabase.table("payments")
@@ -156,11 +147,11 @@ def create_payment_row(
             {
                 "order_id": order["id"],
                 "user_id": order["user_id"],
-                "gateway": "razorpay",
-                "gateway_payment_id": payment_link_id,
+                "gateway": gateway,
+                "gateway_payment_id": gateway_payment_id,
                 "amount": amount,
-                "currency": "INR",
-                "status": "pending",
+                "currency": currency,
+                "status": status,
                 "payment_link_url": payment_link_url,
             }
         )
@@ -176,41 +167,12 @@ def create_payment_row(
     return response.data[0]
 
 
-def find_payment_for_webhook(
-    order_id: Optional[str] = None,
-    payment_link_id: Optional[str] = None,
-):
-    query = (
-        supabase.table("payments")
-        .select("*")
-        .eq("gateway", "razorpay")
-        .order("created_at", desc=True)
-        .limit(1)
-    )
-
-    if payment_link_id:
-        query = query.eq("gateway_payment_id", payment_link_id)
-    elif order_id:
-        query = query.eq("order_id", order_id)
-    else:
-        return None
-
-    response = query.execute()
-
-    if not response.data:
-        return None
-
-    return response.data[0]
-
-
 def update_payment_status(
     payment_id: str,
     status: str,
     paid_at: Optional[str] = None,
 ):
-    update_data = {
-        "status": status,
-    }
+    update_data = {"status": status}
 
     if paid_at:
         update_data["paid_at"] = paid_at
@@ -258,11 +220,7 @@ def decrement_stock_for_paid_order(order: dict[str, Any]):
 
         (
             supabase.table("products")
-            .update(
-                {
-                    "stock_count": new_stock,
-                }
-            )
+            .update({"stock_count": new_stock})
             .eq("id", product_id)
             .eq("user_id", order["user_id"])
             .execute()
@@ -282,9 +240,7 @@ def confirm_order_after_payment(order_id: str):
 
     decrement_stock_for_paid_order(order)
 
-    update_data = {
-        "stock_processed": True,
-    }
+    update_data = {"stock_processed": True}
 
     if current_status == "new":
         update_data["status"] = "confirmed"
@@ -303,6 +259,66 @@ def confirm_order_after_payment(order_id: str):
     return response.data[0]
 
 
+def get_razorpay_client():
+    if not settings.RAZORPAY_KEY_ID or not settings.RAZORPAY_KEY_SECRET:
+        raise HTTPException(
+            status_code=500,
+            detail="Razorpay keys are not configured in .env yet",
+        )
+
+    try:
+        import razorpay
+    except Exception:
+        raise HTTPException(
+            status_code=500,
+            detail="Razorpay SDK is not installed. Run: pip install razorpay",
+        )
+
+    return razorpay.Client(
+        auth=(
+            settings.RAZORPAY_KEY_ID,
+            settings.RAZORPAY_KEY_SECRET,
+        )
+    )
+
+
+def require_razorpay_webhook_secret() -> str:
+    if not settings.RAZORPAY_WEBHOOK_SECRET:
+        raise HTTPException(
+            status_code=500,
+            detail="RAZORPAY_WEBHOOK_SECRET is not configured in .env yet",
+        )
+
+    return settings.RAZORPAY_WEBHOOK_SECRET
+
+
+def find_payment_for_webhook(
+    order_id: Optional[str] = None,
+    payment_link_id: Optional[str] = None,
+):
+    query = (
+        supabase.table("payments")
+        .select("*")
+        .eq("gateway", "razorpay")
+        .order("created_at", desc=True)
+        .limit(1)
+    )
+
+    if payment_link_id:
+        query = query.eq("gateway_payment_id", payment_link_id)
+    elif order_id:
+        query = query.eq("order_id", order_id)
+    else:
+        return None
+
+    response = query.execute()
+
+    if not response.data:
+        return None
+
+    return response.data[0]
+
+
 def extract_order_id_from_notes(notes: Any) -> Optional[str]:
     if not notes:
         return None
@@ -316,11 +332,7 @@ def extract_order_id_from_notes(notes: Any) -> Optional[str]:
         return None
 
     text = str(value).strip()
-
-    if not text:
-        return None
-
-    return text
+    return text if text else None
 
 
 def get_entity(payload: dict[str, Any], entity_name: str):
@@ -343,20 +355,13 @@ def get_payment_gateways():
                 "enabled": razorpay_configured,
                 "label": "Razorpay",
                 "currency": "INR",
-                "supports": [
-                    "UPI",
-                    "Cards",
-                    "Netbanking",
-                    "Wallets",
-                ],
+                "supports": ["UPI", "Cards", "Netbanking", "Wallets"],
             },
             "cod": {
                 "enabled": True,
                 "label": "Cash on Delivery",
                 "currency": "INR",
-                "supports": [
-                    "Manual collection",
-                ],
+                "supports": ["Manual collection", "Pay later"],
             },
             "stripe": {
                 "enabled": False,
@@ -368,17 +373,131 @@ def get_payment_gateways():
     }
 
 
+@router.get("/order/{order_id}")
+def get_order_payments(
+    order_id: str,
+    user=Depends(get_logged_in_user),
+):
+    order = fetch_order_for_user(order_id=order_id, user_id=user.id)
+
+    response = (
+        supabase.table("payments")
+        .select("*")
+        .eq("order_id", order_id)
+        .eq("user_id", user.id)
+        .order("created_at", desc=True)
+        .execute()
+    )
+
+    payments = response.data or []
+    latest_payment = payments[0] if payments else None
+
+    return {
+        "order": {
+            "id": order["id"],
+            "order_number": order.get("order_number"),
+            "status": order.get("status"),
+            "total_amount": order.get("total_amount"),
+        },
+        "latest_payment": latest_payment,
+        "payments": payments,
+        "count": len(payments),
+    }
+
+
+@router.post("/cod/create")
+def create_cod_payment(
+    payload: OrderPaymentRequest,
+    user=Depends(get_logged_in_user),
+):
+    order = fetch_order_for_user(order_id=payload.order_id, user_id=user.id)
+
+    if order.get("status") == "cancelled":
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot create COD payment for a cancelled order",
+        )
+
+    amount = to_float(order.get("total_amount"))
+
+    if amount <= 0:
+        raise HTTPException(
+            status_code=400,
+            detail="Order amount must be greater than zero",
+        )
+
+    existing_payment = get_latest_payment(
+        order_id=order["id"],
+        user_id=user.id,
+        gateway="cod",
+    )
+
+    if existing_payment:
+        return {
+            "message": "Existing COD payment returned",
+            "payment": existing_payment,
+            "order": order,
+        }
+
+    payment = create_payment_row(
+        order=order,
+        gateway="cod",
+        gateway_payment_id=f"cod_{order['id']}_{int(datetime.now().timestamp())}",
+        amount=amount,
+        currency="INR",
+        status="pending",
+        payment_link_url=None,
+    )
+
+    return {
+        "message": "COD payment created successfully",
+        "payment": payment,
+        "order": order,
+    }
+
+
+@router.patch("/{payment_id}/mark-paid")
+def mark_payment_as_paid(
+    payment_id: str,
+    user=Depends(get_logged_in_user),
+):
+    payment = get_payment_for_user(payment_id=payment_id, user_id=user.id)
+
+    if payment.get("status") == "paid":
+        return {
+            "message": "Payment is already marked as paid",
+            "payment": payment,
+        }
+
+    if payment.get("status") == "failed":
+        raise HTTPException(
+            status_code=400,
+            detail="Failed payment cannot be marked as paid. Create a new payment.",
+        )
+
+    updated_payment = update_payment_status(
+        payment_id=payment["id"],
+        status="paid",
+        paid_at=now_iso(),
+    )
+
+    updated_order = confirm_order_after_payment(payment["order_id"])
+
+    return {
+        "message": "Payment marked as paid successfully",
+        "payment": updated_payment,
+        "order": updated_order,
+    }
+
+
 @router.post("/razorpay/create-link")
 def create_razorpay_payment_link(
-    payload: RazorpayCreateLinkRequest,
+    payload: OrderPaymentRequest,
     user=Depends(get_logged_in_user),
 ):
     client = get_razorpay_client()
 
-    order = fetch_order_for_user(
-        order_id=payload.order_id,
-        user_id=user.id,
-    )
+    order = fetch_order_for_user(order_id=payload.order_id, user_id=user.id)
 
     if order.get("status") == "cancelled":
         raise HTTPException(
@@ -394,9 +513,10 @@ def create_razorpay_payment_link(
             detail="Order amount must be greater than zero",
         )
 
-    existing_payment = get_existing_razorpay_payment(
+    existing_payment = get_latest_payment(
         order_id=order["id"],
         user_id=user.id,
+        gateway="razorpay",
     )
 
     if existing_payment:
@@ -404,6 +524,7 @@ def create_razorpay_payment_link(
             return {
                 "message": "Order is already paid",
                 "payment": existing_payment,
+                "order": order,
             }
 
         if existing_payment.get("payment_link_url"):
@@ -412,22 +533,27 @@ def create_razorpay_payment_link(
                 "payment_link_url": existing_payment.get("payment_link_url"),
                 "short_url": existing_payment.get("payment_link_url"),
                 "payment": existing_payment,
+                "order": order,
             }
 
     customer = fetch_customer(order.get("customer_id"))
-
-    customer_name = "OrdiFy Customer"
-    customer_email = ""
-    customer_phone = ""
+    customer_data = {}
 
     if customer:
         customer_name = (
             customer.get("display_name")
             or customer.get("instagram_username")
-            or "OrdiFy Customer"
+            or ""
         )
         customer_email = customer.get("email") or ""
         customer_phone = customer.get("phone") or ""
+
+        if customer_name:
+            customer_data["name"] = customer_name
+        if customer_email:
+            customer_data["email"] = customer_email
+        if customer_phone:
+            customer_data["contact"] = customer_phone
 
     order_number = order.get("order_number") or order["id"]
     amount_in_paise = int(round(amount * 100))
@@ -437,15 +563,7 @@ def create_razorpay_payment_link(
         "currency": "INR",
         "accept_partial": False,
         "description": f"Payment for OrdiFy Order {order_number}",
-        "customer": {
-            "name": customer_name,
-            "email": customer_email,
-            "contact": customer_phone,
-        },
-        "notify": {
-            "sms": False,
-            "email": False,
-        },
+        "notify": {"sms": False, "email": False},
         "reminder_enable": True,
         "notes": {
             "order_id": order["id"],
@@ -456,6 +574,9 @@ def create_razorpay_payment_link(
         "callback_url": settings.RAZORPAY_CALLBACK_URL,
         "callback_method": "get",
     }
+
+    if customer_data:
+        payment_link_payload["customer"] = customer_data
 
     try:
         payment_link = client.payment_link.create(payment_link_payload)
@@ -476,9 +597,12 @@ def create_razorpay_payment_link(
 
     payment = create_payment_row(
         order=order,
-        payment_link_id=payment_link_id,
-        payment_link_url=payment_link_url,
+        gateway="razorpay",
+        gateway_payment_id=payment_link_id,
         amount=amount,
+        currency="INR",
+        status="pending",
+        payment_link_url=payment_link_url,
     )
 
     return {
@@ -528,7 +652,7 @@ async def razorpay_webhook(
         )
 
     try:
-        event_payload = await request.json()
+        event_payload = json.loads(raw_body.decode("utf-8"))
     except Exception:
         raise HTTPException(
             status_code=400,
@@ -545,14 +669,10 @@ async def razorpay_webhook(
 
     if payment_link_entity:
         payment_link_id = payment_link_entity.get("id")
-        order_id = extract_order_id_from_notes(
-            payment_link_entity.get("notes")
-        )
+        order_id = extract_order_id_from_notes(payment_link_entity.get("notes"))
 
     if not order_id and payment_entity:
-        order_id = extract_order_id_from_notes(
-            payment_entity.get("notes")
-        )
+        order_id = extract_order_id_from_notes(payment_entity.get("notes"))
 
     if event_name == "payment_link.paid":
         payment = find_payment_for_webhook(
@@ -566,7 +686,6 @@ async def razorpay_webhook(
                 status="paid",
                 paid_at=now_iso(),
             )
-
             confirm_order_after_payment(payment["order_id"])
 
         return {
@@ -584,10 +703,7 @@ async def razorpay_webhook(
         )
 
         if payment:
-            update_payment_status(
-                payment_id=payment["id"],
-                status="failed",
-            )
+            update_payment_status(payment_id=payment["id"], status="failed")
 
         return {
             "received": True,
