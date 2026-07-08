@@ -2,10 +2,9 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'ordify_logo_mark.dart';
 
 const ordifyBg = Color(0xFF050A08);
-const ordifyCard = Color(0xFF15211D);
+const ordifyCard = Color(0xFF1A2D24);
 const ordifyGreen = Color(0xFF35E58F);
 const ordifyGreenDark = Color(0xFF06100B);
 const ordifyYellow = Color(0xFFFFC857);
@@ -24,15 +23,13 @@ class OrdifyBackground extends StatelessWidget {
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        Container(
-          color: ordifyBg,
-        ),
+        Container(color: ordifyBg),
         Positioned(
           top: -130,
           right: -90,
           child: OrdifyBlurCircle(
             size: 310,
-            color: const Color(0xFF00B86B).withValues(alpha: 0.30),
+            color: const Color(0xFF00B86B).withOpacity(0.30),
           ),
         ),
         Positioned(
@@ -40,7 +37,7 @@ class OrdifyBackground extends StatelessWidget {
           left: -110,
           child: OrdifyBlurCircle(
             size: 320,
-            color: ordifyGreen.withValues(alpha: 0.20),
+            color: ordifyGreen.withOpacity(0.20),
           ),
         ),
         Positioned(
@@ -48,12 +45,12 @@ class OrdifyBackground extends StatelessWidget {
           left: -130,
           child: OrdifyBlurCircle(
             size: 260,
-            color: const Color(0xFF0E7A4F).withValues(alpha: 0.20),
+            color: const Color(0xFF0E7A4F).withOpacity(0.20),
           ),
         ),
         Positioned.fill(
           child: Container(
-            color: Colors.black.withValues(alpha: 0.12),
+            color: Colors.black.withOpacity(0.12),
           ),
         ),
         child,
@@ -96,35 +93,30 @@ class OrdifyGlassCard extends StatelessWidget {
   const OrdifyGlassCard({
     super.key,
     required this.child,
-    this.padding = const EdgeInsets.all(18),
-    this.radius = 28,
+    this.padding = const EdgeInsets.all(22),
+    this.radius = 30,
   });
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(radius),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-        child: Container(
-          padding: padding,
-          decoration: BoxDecoration(
-            color: ordifyCard.withValues(alpha: 0.78),
-            borderRadius: BorderRadius.circular(radius),
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.08),
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.24),
-                blurRadius: 26,
-                offset: const Offset(0, 16),
-              ),
-            ],
-          ),
-          child: child,
+    return Container(
+      width: double.infinity,
+      padding: padding,
+      decoration: BoxDecoration(
+        color: ordifyCard.withOpacity(0.78),
+        borderRadius: BorderRadius.circular(radius),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.22),
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.30),
+            blurRadius: 28,
+            offset: const Offset(0, 16),
+          ),
+        ],
       ),
+      child: child,
     );
   }
 }
@@ -149,7 +141,26 @@ class OrdifyTopHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        const OrdifyLogoMark(size: 46),
+        Container(
+          height: 46,
+          width: 46,
+          decoration: BoxDecoration(
+            color: ordifyGreen,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: ordifyGreen.withOpacity(0.26),
+                blurRadius: 18,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Icon(
+            icon,
+            color: ordifyGreenDark,
+            size: 25,
+          ),
+        ),
         const SizedBox(width: 12),
         Expanded(
           child: Column(
@@ -157,6 +168,8 @@ class OrdifyTopHeader extends StatelessWidget {
             children: [
               Text(
                 eyebrow,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: GoogleFonts.inter(
                   color: Colors.white54,
                   fontSize: 12,
@@ -165,11 +178,19 @@ class OrdifyTopHeader extends StatelessWidget {
               ),
               Text(
                 title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: GoogleFonts.inter(
                   color: Colors.white,
                   fontSize: 21,
                   fontWeight: FontWeight.w900,
                   letterSpacing: -0.4,
+                  shadows: [
+                    Shadow(
+                      color: ordifyGreen.withOpacity(0.20),
+                      blurRadius: 12,
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -178,10 +199,16 @@ class OrdifyTopHeader extends StatelessWidget {
         if (badgeText != null)
           InkWell(
             onTap: onBadgeTap,
-            borderRadius: BorderRadius.circular(22),
-            child: OrdifyGlassCard(
-              radius: 22,
+            borderRadius: BorderRadius.circular(999),
+            child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 10),
+              decoration: BoxDecoration(
+                color: ordifyGreen.withOpacity(0.14),
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(
+                  color: ordifyGreen.withOpacity(0.30),
+                ),
+              ),
               child: Text(
                 badgeText!,
                 style: GoogleFonts.inter(
@@ -198,56 +225,78 @@ class OrdifyTopHeader extends StatelessWidget {
 }
 
 class OrdifyMetricCard extends StatelessWidget {
-  final String title;
-  final String value;
   final IconData icon;
-  final Color color;
+  final String value;
+  final String? title;
+  final String? label;
+  final Color? color;
+  final Color? iconColor;
+  final double minHeight;
 
   const OrdifyMetricCard({
     super.key,
-    required this.title,
-    required this.value,
     required this.icon,
-    this.color = ordifyGreen,
+    required this.value,
+    this.title,
+    this.label,
+    this.color,
+    this.iconColor,
+    this.minHeight = 118,
   });
 
   @override
   Widget build(BuildContext context) {
-    return OrdifyGlassCard(
-      radius: 24,
+    final resolvedLabel = label ?? title ?? '';
+    final resolvedColor = iconColor ?? color ?? ordifyGreen;
+
+    return Container(
+      constraints: BoxConstraints(minHeight: minHeight),
       padding: const EdgeInsets.all(14),
-      child: SizedBox(
-        height: 86,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(
-              icon,
-              color: color,
-              size: 22,
-            ),
-            const Spacer(),
-            Text(
-              value,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: GoogleFonts.inter(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              title,
-              style: GoogleFonts.inter(
-                color: Colors.white54,
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ],
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.06),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.20),
         ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            icon,
+            color: resolvedColor,
+            size: 25,
+          ),
+          const SizedBox(height: 14),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              value,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 26,
+                fontWeight: FontWeight.w900,
+                shadows: [
+                  Shadow(
+                    color: Color(0xFFFFD6D6),
+                    blurRadius: 8,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            resolvedLabel,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -283,7 +332,7 @@ class OrdifyActionTile extends StatelessWidget {
               height: 42,
               width: 42,
               decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.14),
+                color: color.withOpacity(0.14),
                 borderRadius: BorderRadius.circular(15),
               ),
               child: Icon(
@@ -299,6 +348,8 @@ class OrdifyActionTile extends StatelessWidget {
                 children: [
                   Text(
                     title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: GoogleFonts.inter(
                       color: Colors.white,
                       fontSize: 14,
@@ -364,6 +415,39 @@ class OrdifySectionTitle extends StatelessWidget {
             ),
           ),
       ],
+    );
+  }
+}
+
+class OrdifyStatusPill extends StatelessWidget {
+  final String text;
+  final Color color;
+
+  const OrdifyStatusPill({
+    super.key,
+    required this.text,
+    this.color = ordifyGreen,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.14),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: color.withOpacity(0.32),
+        ),
+      ),
+      child: Text(
+        text,
+        style: GoogleFonts.inter(
+          color: color,
+          fontSize: 11,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
     );
   }
 }

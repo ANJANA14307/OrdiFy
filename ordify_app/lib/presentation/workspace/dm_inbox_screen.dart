@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/network/api_client.dart';
-import 'orders_screen.dart';
+import 'order_detail_screen.dart';
 
 class DMInboxScreen extends StatefulWidget {
   const DMInboxScreen({super.key});

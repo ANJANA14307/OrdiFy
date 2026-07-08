@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/network/api_client.dart';
 import 'ordify_workspace_widgets.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -15,7 +16,9 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   bool _isLoading = false;
   bool _instagramConnected = false;
+
   String _instagramUsername = 'Not connected';
+
   int _productCount = 0;
   int _lowStockCount = 0;
 
@@ -33,20 +36,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Future<void> _loadDashboard() async {
     setState(() => _isLoading = true);
+
     final token = Supabase.instance.client.auth.currentSession?.accessToken;
-debugPrint('SUPABASE TOKEN: $token');
+    debugPrint('SUPABASE TOKEN: $token');
 
     try {
-      final productResponse =
-          await apiClient.get('/products?page=1&limit=50');
+      final productResponse = await apiClient.get('/products?page=1&limit=50');
 
       final products = productResponse.data['products'] ?? [];
 
       int lowStock = 0;
+
       for (final product in products) {
         final stock = _toInt(product['stock_count']);
-        final threshold =
-            _toInt(product['low_stock_threshold'], fallback: 5);
+        final threshold = _toInt(
+          product['low_stock_threshold'],
+          fallback: 5,
+        );
 
         if (stock <= threshold) {
           lowStock++;
@@ -105,46 +111,52 @@ debugPrint('SUPABASE TOKEN: $token');
         : (((_productCount - _lowStockCount) / _productCount) * 100).round();
 
     return Scaffold(
-      backgroundColor: ordifyBg,
-      body: OrdifyBackground(
+      backgroundColor: const Color(0xFF050807),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: RadialGradient(
+            center: Alignment.topRight,
+            radius: 1.25,
+            colors: [
+              Color(0xFF16C76A),
+              Color(0xFF0A2418),
+              Color(0xFF050807),
+            ],
+            stops: [0.0, 0.36, 1.0],
+          ),
+        ),
         child: SafeArea(
           child: RefreshIndicator(
             color: ordifyGreen,
+            backgroundColor: const Color(0xFF0B1510),
             onRefresh: _loadDashboard,
             child: ListView(
-              padding: const EdgeInsets.fromLTRB(20, 26, 20, 145),
+              padding: const EdgeInsets.fromLTRB(18, 18, 18, 130),
               children: [
-                OrdifyTopHeader(
-                  eyebrow: 'Welcome back',
-                  title: 'OrdiFy Hub',
-                  icon: Icons.dashboard_rounded,
-                  badgeText: _isLoading ? 'Syncing' : 'Live',
+                _GlitterHeader(
+                  isLoading: _isLoading,
+                  onRefresh: _loadDashboard,
                 ),
-                const SizedBox(height: 18),
+                const SizedBox(height: 22),
                 OrdifyGlassCard(
-                  radius: 30,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
+                      const _GlowText(
                         'Business Command Center',
-                        style: GoogleFonts.inter(
-                          color: Colors.white,
-                          fontSize: 21,
-                          fontWeight: FontWeight.w900,
-                        ),
+                        fontSize: 25,
                       ),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 8),
                       Text(
                         'Track your catalog, Instagram connection, and daily operations from one place.',
                         style: GoogleFonts.inter(
-                          color: Colors.white54,
+                          color: const Color(0xFFE8FFF2),
                           height: 1.4,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
-                      const SizedBox(height: 18),
+                      const SizedBox(height: 22),
                       Row(
                         children: [
                           Expanded(
@@ -152,9 +164,10 @@ debugPrint('SUPABASE TOKEN: $token');
                               title: 'Products',
                               value: '$_productCount',
                               icon: Icons.inventory_2_rounded,
+                              color: ordifyGreen,
                             ),
                           ),
-                          const SizedBox(width: 10),
+                          const SizedBox(width: 12),
                           Expanded(
                             child: OrdifyMetricCard(
                               title: 'Low Stock',
@@ -163,7 +176,7 @@ debugPrint('SUPABASE TOKEN: $token');
                               color: ordifyYellow,
                             ),
                           ),
-                          const SizedBox(width: 10),
+                          const SizedBox(width: 12),
                           Expanded(
                             child: OrdifyMetricCard(
                               title: 'Health',
@@ -178,95 +191,338 @@ debugPrint('SUPABASE TOKEN: $token');
                   ),
                 ),
                 const SizedBox(height: 16),
-                OrdifyGlassCard(
-                  radius: 28,
-                  child: Row(
-                    children: [
-                      Container(
-                        height: 54,
-                        width: 54,
-                        decoration: BoxDecoration(
-                          color: (_instagramConnected
-                                  ? ordifyGreen
-                                  : ordifyYellow)
-                              .withValues(alpha: 0.16),
-                          borderRadius: BorderRadius.circular(18),
-                        ),
-                        child: Icon(
-                          _instagramConnected
-                              ? Icons.verified_rounded
-                              : Icons.link_rounded,
-                          color: _instagramConnected
-                              ? ordifyGreen
-                              : ordifyYellow,
-                        ),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              _instagramConnected
-                                  ? 'Instagram Connected'
-                                  : 'Instagram Not Connected',
-                              style: GoogleFonts.inter(
-                                color: Colors.white,
-                                fontSize: 15,
-                                fontWeight: FontWeight.w900,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              _instagramUsername,
-                              style: GoogleFonts.inter(
-                                color: Colors.white54,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      TextButton(
-                        onPressed: _connectInstagram,
-                        child: Text(
-                          _instagramConnected ? 'Refresh' : 'Connect',
-                          style: GoogleFonts.inter(
-                            color: ordifyGreen,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                _InstagramCard(
+                  connected: _instagramConnected,
+                  username: _instagramUsername,
+                  onConnect: _connectInstagram,
                 ),
-                const SizedBox(height: 22),
-                const OrdifySectionTitle(title: 'Quick Flow'),
+                const SizedBox(height: 24),
+                const _GlowText(
+                  'Quick Flow',
+                  fontSize: 24,
+                ),
+                const SizedBox(height: 14),
+                _ActionTile(
+                  icon: Icons.analytics_rounded,
+                  title: 'Analytics Hub',
+                  subtitle:
+                      'View revenue, orders, stock health and business insights',
+                  color: const Color(0xFF9DF6FF),
+                  onTap: () => context.push('/analytics'),
+                ),
                 const SizedBox(height: 12),
-                const OrdifyActionTile(
+                _ActionTile(
+                  icon: Icons.settings_rounded,
+                  title: 'Settings',
+                  subtitle:
+                      'Manage business profile, Instagram handle and account info',
+                  color: const Color(0xFFB788FF),
+                  onTap: () => context.push('/settings'),
+                ),
+                const SizedBox(height: 12),
+                _ActionTile(
                   icon: Icons.receipt_long_rounded,
                   title: 'Orders Pipeline',
                   subtitle: 'Create and track customer orders',
+                  color: ordifyGreen,
+                  onTap: () => context.go('/orders'),
                 ),
                 const SizedBox(height: 12),
-                const OrdifyActionTile(
+                _ActionTile(
                   icon: Icons.people_alt_rounded,
                   title: 'Customer CRM',
                   subtitle: 'Manage buyers and repeat customers',
                   color: ordifyBlue,
+                  onTap: () => context.go('/customers'),
                 ),
                 const SizedBox(height: 12),
-                const OrdifyActionTile(
+                _ActionTile(
+                  icon: Icons.inventory_2_rounded,
+                  title: 'Stock Control',
+                  subtitle: 'Manage products and low stock alerts',
+                  color: ordifyYellow,
+                  onTap: () => context.go('/inventory'),
+                ),
+                const SizedBox(height: 12),
+                _ActionTile(
                   icon: Icons.auto_awesome_rounded,
                   title: 'OrdiFy AI',
                   subtitle: 'Get smart stock and sales suggestions',
-                  color: ordifyYellow,
+                  color: const Color(0xFFB788FF),
+                  onTap: () => context.go('/ai-tools'),
                 ),
               ],
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _GlitterHeader extends StatelessWidget {
+  const _GlitterHeader({
+    required this.isLoading,
+    required this.onRefresh,
+  });
+
+  final bool isLoading;
+  final VoidCallback onRefresh;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          height: 54,
+          width: 54,
+          decoration: BoxDecoration(
+            color: ordifyGreen,
+            borderRadius: BorderRadius.circular(18),
+            boxShadow: [
+              BoxShadow(
+                color: ordifyGreen.withOpacity(0.42),
+                blurRadius: 24,
+              ),
+            ],
+          ),
+          child: const Icon(
+            Icons.dashboard_rounded,
+            color: Colors.black,
+            size: 28,
+          ),
+        ),
+        const SizedBox(width: 14),
+        const Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Welcome back',
+                style: TextStyle(
+                  color: Color(0xFFE8FFF2),
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              _GlowText(
+                'OrdiFy Hub',
+                fontSize: 27,
+              ),
+            ],
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: ordifyGreen.withOpacity(0.16),
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(
+              color: ordifyGreen.withOpacity(0.35),
+            ),
+          ),
+          child: Text(
+            isLoading ? 'SYNCING' : 'LIVE',
+            style: GoogleFonts.inter(
+              color: ordifyGreen,
+              fontSize: 11,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ),
+        const SizedBox(width: 6),
+        IconButton(
+          onPressed: isLoading ? null : onRefresh,
+          icon: isLoading
+              ? const SizedBox(
+                  height: 22,
+                  width: 22,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: ordifyGreen,
+                  ),
+                )
+              : const Icon(
+                  Icons.refresh_rounded,
+                  color: Colors.white,
+                ),
+        ),
+      ],
+    );
+  }
+}
+
+class _InstagramCard extends StatelessWidget {
+  const _InstagramCard({
+    required this.connected,
+    required this.username,
+    required this.onConnect,
+  });
+
+  final bool connected;
+  final String username;
+  final VoidCallback onConnect;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = connected ? ordifyGreen : ordifyYellow;
+
+    return OrdifyGlassCard(
+      padding: const EdgeInsets.all(18),
+      child: Row(
+        children: [
+          Container(
+            height: 58,
+            width: 58,
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.18),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Icon(
+              connected ? Icons.verified_rounded : Icons.link_rounded,
+              color: color,
+              size: 30,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _GlowText(
+                  connected ? 'Instagram Connected' : 'Instagram Not Connected',
+                  fontSize: 16,
+                  soft: true,
+                ),
+                const SizedBox(height: 5),
+                Text(
+                  username,
+                  style: GoogleFonts.inter(
+                    color: const Color(0xFFE8FFF2),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          TextButton(
+            onPressed: onConnect,
+            child: Text(
+              connected ? 'Refresh' : 'Connect',
+              style: GoogleFonts.inter(
+                color: ordifyGreen,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ActionTile extends StatelessWidget {
+  const _ActionTile({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.color,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final Color color;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return OrdifyGlassCard(
+      padding: const EdgeInsets.all(16),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(26),
+        onTap: onTap,
+        child: Row(
+          children: [
+            Container(
+              height: 54,
+              width: 54,
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.18),
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: Icon(
+                icon,
+                color: color,
+                size: 28,
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _GlowText(
+                    title,
+                    fontSize: 17,
+                    soft: true,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: GoogleFonts.inter(
+                      color: const Color(0xFFE8FFF2),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      height: 1.35,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(
+              Icons.arrow_forward_ios_rounded,
+              color: Color(0xFFE8FFF2),
+              size: 16,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _GlowText extends StatelessWidget {
+  const _GlowText(
+    this.text, {
+    required this.fontSize,
+    this.soft = false,
+  });
+
+  final String text;
+  final double fontSize;
+  final bool soft;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      overflow: TextOverflow.ellipsis,
+      style: GoogleFonts.inter(
+        color: Colors.white,
+        fontSize: fontSize,
+        fontWeight: FontWeight.w900,
+        shadows: [
+          Shadow(
+            color: soft ? const Color(0xFFFFC8C8) : const Color(0xFFFFD6D6),
+            blurRadius: soft ? 8 : 12,
+          ),
+          Shadow(
+            color: ordifyGreen.withOpacity(0.25),
+            blurRadius: soft ? 8 : 14,
+          ),
+        ],
       ),
     );
   }

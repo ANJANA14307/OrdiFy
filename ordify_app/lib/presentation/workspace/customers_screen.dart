@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/network/api_client.dart';
+import 'ordify_workspace_widgets.dart';
 
 class CustomersScreen extends StatefulWidget {
   const CustomersScreen({super.key});
@@ -16,6 +17,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
   String? _message;
 
   List<dynamic> _customers = [];
+  String _searchText = '';
 
   @override
   void initState() {
@@ -26,9 +28,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
   Future<void> _loadCustomers({bool clearMessage = true}) async {
     setState(() {
       _isLoading = true;
-      if (clearMessage) {
-        _message = null;
-      }
+      if (clearMessage) _message = null;
     });
 
     try {
@@ -56,8 +56,30 @@ class _CustomersScreenState extends State<CustomersScreen> {
     }
   }
 
+  List<dynamic> get _filteredCustomers {
+    if (_searchText.trim().isEmpty) return _customers;
+
+    final query = _searchText.toLowerCase().trim();
+
+    return _customers.where((customer) {
+      if (customer is! Map) return false;
+
+      final name = customer['display_name']?.toString().toLowerCase() ?? '';
+      final instagram =
+          customer['instagram_username']?.toString().toLowerCase() ?? '';
+      final email = customer['email']?.toString().toLowerCase() ?? '';
+      final phone = customer['phone']?.toString().toLowerCase() ?? '';
+
+      return name.contains(query) ||
+          instagram.contains(query) ||
+          email.contains(query) ||
+          phone.contains(query);
+    }).toList();
+  }
+
   int get _vipCount {
     return _customers.where((customer) {
+      if (customer is! Map) return false;
       return customer['is_vip'] == true;
     }).length;
   }
@@ -68,7 +90,9 @@ class _CustomersScreenState extends State<CustomersScreen> {
     double total = 0;
 
     for (final customer in _customers) {
-      total += _toDouble(customer['total_spent']);
+      if (customer is Map) {
+        total += _toDouble(customer['total_spent']);
+      }
     }
 
     return total;
@@ -78,7 +102,9 @@ class _CustomersScreenState extends State<CustomersScreen> {
     int total = 0;
 
     for (final customer in _customers) {
-      total += _toInt(customer['total_orders']);
+      if (customer is Map) {
+        total += _toInt(customer['total_orders']);
+      }
     }
 
     return total;
@@ -105,41 +131,73 @@ class _CustomersScreenState extends State<CustomersScreen> {
   }
 
   Future<void> _openCustomerSheet({dynamic customer}) async {
-    final isEditing = customer != null;
+    final customerMap =
+        customer is Map ? Map<String, dynamic>.from(customer) : null;
+
+    final isEditing = customerMap != null;
 
     final instagramController = TextEditingController(
-      text: isEditing ? customer['instagram_username']?.toString() ?? '' : '',
+      text: isEditing
+          ? customerMap['instagram_username']?.toString() ?? ''
+          : '',
     );
     final nameController = TextEditingController(
-      text: isEditing ? customer['display_name']?.toString() ?? '' : '',
+      text: isEditing ? customerMap['display_name']?.toString() ?? '' : '',
     );
     final emailController = TextEditingController(
-      text: isEditing ? customer['email']?.toString() ?? '' : '',
+      text: isEditing ? customerMap['email']?.toString() ?? '' : '',
     );
     final phoneController = TextEditingController(
-      text: isEditing ? customer['phone']?.toString() ?? '' : '',
+      text: isEditing ? customerMap['phone']?.toString() ?? '' : '',
     );
 
-    bool isVip = isEditing ? customer['is_vip'] == true : false;
+    bool isVip = isEditing ? customerMap['is_vip'] == true : false;
 
     final shouldSave = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
+      backgroundColor: const Color(0xFF0B1510),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(32),
+        ),
+      ),
       builder: (sheetContext) {
         return StatefulBuilder(
           builder: (context, setSheetState) {
-            return Padding(
-              padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).viewInsets.bottom,
-              ),
-              child: Container(
-                padding: const EdgeInsets.fromLTRB(22, 20, 22, 22),
-                decoration: const BoxDecoration(
-                  color: Color(0xFF080808),
-                  borderRadius: BorderRadius.vertical(
-                    top: Radius.circular(28),
+            return Theme(
+              data: Theme.of(context).copyWith(
+                inputDecorationTheme: InputDecorationTheme(
+                  labelStyle: GoogleFonts.inter(
+                    color: const Color(0xFFE8FFF2),
+                    fontWeight: FontWeight.w700,
                   ),
+                  hintStyle: GoogleFonts.inter(
+                    color: Colors.white30,
+                  ),
+                  filled: true,
+                  fillColor: Colors.white.withOpacity(0.06),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(18),
+                    borderSide: BorderSide(
+                      color: Colors.white.withOpacity(0.16),
+                    ),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(18),
+                    borderSide: const BorderSide(
+                      color: Color(0xFF34F087),
+                      width: 2,
+                    ),
+                  ),
+                ),
+              ),
+              child: Padding(
+                padding: EdgeInsets.only(
+                  left: 18,
+                  right: 18,
+                  top: 18,
+                  bottom: MediaQuery.of(context).viewInsets.bottom + 18,
                 ),
                 child: SingleChildScrollView(
                   child: Column(
@@ -149,10 +207,10 @@ class _CustomersScreenState extends State<CustomersScreen> {
                       Center(
                         child: Container(
                           height: 4,
-                          width: 46,
+                          width: 48,
                           decoration: BoxDecoration(
-                            color: Colors.white24,
-                            borderRadius: BorderRadius.circular(20),
+                            color: Colors.white.withOpacity(0.28),
+                            borderRadius: BorderRadius.circular(999),
                           ),
                         ),
                       ),
@@ -163,55 +221,77 @@ class _CustomersScreenState extends State<CustomersScreen> {
                           color: Colors.white,
                           fontSize: 24,
                           fontWeight: FontWeight.w900,
+                          shadows: const [
+                            Shadow(
+                              color: Color(0xFFFFC8C8),
+                              blurRadius: 8,
+                            ),
+                          ],
                         ),
                       ),
                       const SizedBox(height: 6),
                       Text(
                         isEditing
-                            ? 'Update customer details.'
-                            : 'Save a customer for faster order creation.',
+                            ? 'Update saved buyer details.'
+                            : 'Save a buyer profile for faster order creation.',
                         style: GoogleFonts.inter(
-                          color: Colors.white54,
+                          color: const Color(0xFFE8FFF2),
                           fontSize: 13,
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.w700,
+                          height: 1.35,
                         ),
                       ),
                       const SizedBox(height: 22),
-
-                      _sheetLabel('Instagram Username'),
-                      _darkTextField(
+                      TextField(
                         controller: instagramController,
-                        hintText: 'Example: anjana_store',
+                        style: GoogleFonts.inter(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                        ),
+                        decoration: const InputDecoration(
+                          labelText: 'Instagram Username',
+                          hintText: 'example: anjana_store',
+                        ),
                       ),
-
-                      const SizedBox(height: 16),
-
-                      _sheetLabel('Display Name'),
-                      _darkTextField(
+                      const SizedBox(height: 14),
+                      TextField(
                         controller: nameController,
-                        hintText: 'Example: Anjana Customer',
+                        style: GoogleFonts.inter(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                        ),
+                        decoration: const InputDecoration(
+                          labelText: 'Display Name',
+                          hintText: 'example: Anjana Customer',
+                        ),
                       ),
-
-                      const SizedBox(height: 16),
-
-                      _sheetLabel('Email'),
-                      _darkTextField(
+                      const SizedBox(height: 14),
+                      TextField(
                         controller: emailController,
-                        hintText: 'example@gmail.com',
                         keyboardType: TextInputType.emailAddress,
+                        style: GoogleFonts.inter(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                        ),
+                        decoration: const InputDecoration(
+                          labelText: 'Email',
+                          hintText: 'example@gmail.com',
+                        ),
                       ),
-
-                      const SizedBox(height: 16),
-
-                      _sheetLabel('Phone'),
-                      _darkTextField(
+                      const SizedBox(height: 14),
+                      TextField(
                         controller: phoneController,
-                        hintText: '9876543210',
                         keyboardType: TextInputType.phone,
+                        style: GoogleFonts.inter(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                        ),
+                        decoration: const InputDecoration(
+                          labelText: 'Phone',
+                          hintText: '9876543210',
+                        ),
                       ),
-
                       const SizedBox(height: 16),
-
                       GestureDetector(
                         onTap: () {
                           setSheetState(() {
@@ -221,12 +301,12 @@ class _CustomersScreenState extends State<CustomersScreen> {
                         child: Container(
                           padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF101010),
-                            borderRadius: BorderRadius.circular(16),
+                            color: Colors.white.withOpacity(0.06),
+                            borderRadius: BorderRadius.circular(20),
                             border: Border.all(
                               color: isVip
-                                  ? Colors.amberAccent.withOpacity(0.35)
-                                  : Colors.white.withOpacity(0.10),
+                                  ? const Color(0xFFFFC857).withOpacity(0.45)
+                                  : Colors.white.withOpacity(0.16),
                             ),
                           ),
                           child: Row(
@@ -236,7 +316,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
                                     ? Icons.star_rounded
                                     : Icons.star_border_rounded,
                                 color: isVip
-                                    ? Colors.amberAccent
+                                    ? const Color(0xFFFFC857)
                                     : Colors.white38,
                               ),
                               const SizedBox(width: 12),
@@ -252,7 +332,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
                               ),
                               Switch(
                                 value: isVip,
-                                activeColor: const Color(0xFF00FFCC),
+                                activeColor: const Color(0xFF34F087),
                                 onChanged: (value) {
                                   setSheetState(() {
                                     isVip = value;
@@ -263,9 +343,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
                           ),
                         ),
                       ),
-
                       const SizedBox(height: 22),
-
                       Row(
                         children: [
                           Expanded(
@@ -273,43 +351,42 @@ class _CustomersScreenState extends State<CustomersScreen> {
                               onPressed: () =>
                                   Navigator.pop(sheetContext, false),
                               style: OutlinedButton.styleFrom(
+                                foregroundColor: const Color(0xFF34F087),
                                 side: BorderSide(
-                                  color: Colors.white.withOpacity(0.18),
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16),
+                                  color: Colors.white.withOpacity(0.22),
                                 ),
                                 padding: const EdgeInsets.symmetric(
                                   vertical: 15,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(18),
                                 ),
                               ),
                               child: Text(
                                 'Close',
                                 style: GoogleFonts.inter(
-                                  color: Colors.white70,
-                                  fontWeight: FontWeight.w800,
+                                  fontWeight: FontWeight.w900,
                                 ),
                               ),
                             ),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
-                            child: ElevatedButton(
+                            child: FilledButton(
                               onPressed: () =>
                                   Navigator.pop(sheetContext, true),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF00FFCC),
+                              style: FilledButton.styleFrom(
+                                backgroundColor: const Color(0xFF34F087),
                                 foregroundColor: Colors.black,
-                                elevation: 0,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
                                 padding: const EdgeInsets.symmetric(
                                   vertical: 15,
                                 ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(18),
+                                ),
                               ),
                               child: Text(
-                                isEditing ? 'Save Changes' : 'Create Customer',
+                                isEditing ? 'Save' : 'Create',
                                 style: GoogleFonts.inter(
                                   fontWeight: FontWeight.w900,
                                 ),
@@ -355,7 +432,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
 
     if (isEditing) {
       await _updateCustomer(
-        customerId: customer['id'].toString(),
+        customerId: customerMap['id'].toString(),
         instagramUsername: instagramUsername,
         displayName: displayName,
         email: email,
@@ -468,7 +545,10 @@ class _CustomersScreenState extends State<CustomersScreen> {
   }
 
   Future<void> _deleteCustomer(dynamic customer) async {
-    final customerId = customer['id']?.toString();
+    if (customer is! Map) return;
+
+    final customerMap = Map<String, dynamic>.from(customer);
+    final customerId = customerMap['id']?.toString();
 
     if (customerId == null || customerId.isEmpty) {
       setState(() {
@@ -477,30 +557,31 @@ class _CustomersScreenState extends State<CustomersScreen> {
       return;
     }
 
-    final customerName = customer['display_name']?.toString() ??
-        customer['instagram_username']?.toString() ??
+    final customerName = customerMap['display_name']?.toString() ??
+        customerMap['instagram_username']?.toString() ??
         'this customer';
 
     final shouldDelete = await showDialog<bool>(
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          backgroundColor: const Color(0xFF101010),
+          backgroundColor: const Color(0xFF0B1510),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(22),
+            borderRadius: BorderRadius.circular(24),
           ),
           title: Text(
             'Delete Customer?',
             style: GoogleFonts.inter(
               color: Colors.white,
-              fontWeight: FontWeight.w800,
+              fontWeight: FontWeight.w900,
             ),
           ),
           content: Text(
             'Delete $customerName? Customers with existing orders cannot be deleted.',
             style: GoogleFonts.inter(
-              color: Colors.white60,
+              color: const Color(0xFFE8FFF2),
               height: 1.4,
+              fontWeight: FontWeight.w600,
             ),
           ),
           actions: [
@@ -510,7 +591,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
                 'Keep',
                 style: GoogleFonts.inter(
                   color: Colors.white54,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w800,
                 ),
               ),
             ),
@@ -520,7 +601,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
                 'Delete',
                 style: GoogleFonts.inter(
                   color: Colors.redAccent,
-                  fontWeight: FontWeight.w800,
+                  fontWeight: FontWeight.w900,
                 ),
               ),
             ),
@@ -564,24 +645,32 @@ class _CustomersScreenState extends State<CustomersScreen> {
   }
 
   Future<void> _toggleVip(dynamic customer) async {
+    if (customer is! Map) return;
+
+    final customerMap = Map<String, dynamic>.from(customer);
+
     await _updateCustomer(
-      customerId: customer['id'].toString(),
-      instagramUsername: customer['instagram_username']?.toString() ?? '',
-      displayName: customer['display_name']?.toString() ?? '',
-      email: customer['email']?.toString() ?? '',
-      phone: customer['phone']?.toString() ?? '',
-      isVip: customer['is_vip'] != true,
+      customerId: customerMap['id'].toString(),
+      instagramUsername: customerMap['instagram_username']?.toString() ?? '',
+      displayName: customerMap['display_name']?.toString() ?? '',
+      email: customerMap['email']?.toString() ?? '',
+      phone: customerMap['phone']?.toString() ?? '',
+      isVip: customerMap['is_vip'] != true,
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final visibleCustomers = _filteredCustomers;
+
     return Scaffold(
-      backgroundColor: const Color(0xFF050505),
+      backgroundColor: const Color(0xFF050807),
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'customers_add_customer_fab',
         onPressed: _isSaving ? null : () => _openCustomerSheet(),
-        backgroundColor: const Color(0xFF00FFCC),
+        backgroundColor: const Color(0xFF34F087),
         foregroundColor: Colors.black,
+        elevation: 12,
         icon: _isSaving
             ? const SizedBox(
                 height: 18,
@@ -593,479 +682,577 @@ class _CustomersScreenState extends State<CustomersScreen> {
               )
             : const Icon(Icons.person_add_alt_1_rounded),
         label: Text(
-          _isSaving ? 'Working...' : 'Add Customer',
+          _isSaving ? 'Working...' : 'Customer',
           style: GoogleFonts.inter(
             fontWeight: FontWeight.w900,
           ),
         ),
       ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(22, 22, 22, 14),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _topHeader(),
-                  const SizedBox(height: 18),
-                  _statsRow(),
-                  if (_message != null) ...[
-                    const SizedBox(height: 14),
-                    _messageBox(),
-                  ],
-                ],
-              ),
-            ),
-            Expanded(
-              child: _isLoading && _customers.isEmpty
-                  ? const Center(
-                      child: CircularProgressIndicator(
-                        color: Color(0xFF00FFCC),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: RadialGradient(
+            center: Alignment.topRight,
+            radius: 1.25,
+            colors: [
+              Color(0xFF16C76A),
+              Color(0xFF0A2418),
+              Color(0xFF050807),
+            ],
+            stops: [0.0, 0.36, 1.0],
+          ),
+        ),
+        child: SafeArea(
+          child: _isLoading && _customers.isEmpty
+              ? const Center(
+                  child: CircularProgressIndicator(
+                    color: Color(0xFF34F087),
+                  ),
+                )
+              : RefreshIndicator(
+                  color: const Color(0xFF34F087),
+                  backgroundColor: const Color(0xFF0B1510),
+                  onRefresh: () => _loadCustomers(),
+                  child: ListView(
+                    padding: const EdgeInsets.fromLTRB(18, 18, 18, 110),
+                    children: [
+                      _TopHeader(
+                        isLoading: _isLoading,
+                        onRefresh: () => _loadCustomers(),
                       ),
-                    )
-                  : _customers.isEmpty
-                      ? _emptyState()
-                      : RefreshIndicator(
-                          color: const Color(0xFF00FFCC),
-                          backgroundColor: const Color(0xFF101010),
-                          onRefresh: () => _loadCustomers(),
-                          child: ListView.builder(
-                            padding: const EdgeInsets.fromLTRB(18, 0, 18, 90),
-                            itemCount: _customers.length,
-                            itemBuilder: (context, index) {
-                              return _customerCard(_customers[index]);
-                            },
-                          ),
+                      const SizedBox(height: 22),
+                      _CommandCard(
+                        customerCount: _customerCount,
+                        vipCount: _vipCount,
+                        totalOrders: _totalOrders,
+                        totalSpent: _money(_totalSpent),
+                      ),
+                      if (_message != null) ...[
+                        const SizedBox(height: 16),
+                        _MessageBox(message: _message!),
+                      ],
+                      const SizedBox(height: 18),
+                      _SearchBox(
+                        onChanged: (value) {
+                          setState(() {
+                            _searchText = value;
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 24),
+                      const Text(
+                        'Customer Directory',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 24,
+                          fontWeight: FontWeight.w900,
+                          shadows: [
+                            Shadow(
+                              color: Color(0xFFFFD6D6),
+                              blurRadius: 12,
+                            ),
+                          ],
                         ),
-            ),
-          ],
+                      ),
+                      const SizedBox(height: 14),
+                      if (visibleCustomers.isEmpty)
+                        _EmptyState(
+                          hasSearch: _searchText.trim().isNotEmpty,
+                        )
+                      else
+                        ...visibleCustomers.map((customer) {
+                          final customerMap = Map<String, dynamic>.from(
+                            customer as Map,
+                          );
+
+                          return _CustomerCard(
+                            customer: customerMap,
+                            money: _money,
+                            toInt: _toInt,
+                            isSaving: _isSaving,
+                            onEdit: () =>
+                                _openCustomerSheet(customer: customerMap),
+                            onVip: () => _toggleVip(customerMap),
+                            onDelete: () => _deleteCustomer(customerMap),
+                          );
+                        }),
+                    ],
+                  ),
+                ),
         ),
       ),
     );
   }
+}
 
-  Widget _topHeader() {
+class _TopHeader extends StatelessWidget {
+  const _TopHeader({
+    required this.isLoading,
+    required this.onRefresh,
+  });
+
+  final bool isLoading;
+  final VoidCallback onRefresh;
+
+  @override
+  Widget build(BuildContext context) {
     return Row(
       children: [
-        Expanded(
+        Container(
+          height: 54,
+          width: 54,
+          decoration: BoxDecoration(
+            color: const Color(0xFF34F087),
+            borderRadius: BorderRadius.circular(18),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF34F087).withOpacity(0.42),
+                blurRadius: 24,
+              ),
+            ],
+          ),
+          child: const Icon(
+            Icons.people_alt_rounded,
+            color: Colors.black,
+            size: 28,
+          ),
+        ),
+        const SizedBox(width: 14),
+        const Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Customers',
-                style: GoogleFonts.inter(
-                  color: Colors.white,
-                  fontSize: 32,
-                  fontWeight: FontWeight.w900,
+                'Buyer relationships',
+                style: TextStyle(
+                  color: Color(0xFFE8FFF2),
+                  fontWeight: FontWeight.w700,
                 ),
               ),
-              const SizedBox(height: 6),
               Text(
-                'Save customer details and create orders faster.',
-                style: GoogleFonts.inter(
-                  color: Colors.white54,
-                  fontSize: 14,
-                  height: 1.4,
+                'Customers Hub',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 27,
+                  fontWeight: FontWeight.w900,
+                  shadows: [
+                    Shadow(
+                      color: Color(0xFFFFC8C8),
+                      blurRadius: 9,
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
         ),
         IconButton(
-          onPressed: _isLoading ? null : () => _loadCustomers(),
-          icon: _isLoading
+          onPressed: isLoading ? null : onRefresh,
+          icon: isLoading
               ? const SizedBox(
                   height: 22,
                   width: 22,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    color: Color(0xFF00FFCC),
+                    color: Color(0xFF34F087),
                   ),
                 )
               : const Icon(
                   Icons.refresh_rounded,
-                  color: Color(0xFF00FFCC),
+                  color: Colors.white,
                 ),
         ),
       ],
     );
   }
+}
 
-  Widget _statsRow() {
-    return SizedBox(
-      height: 86,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        children: [
-          _statCard(
-            title: 'Customers',
-            value: _customerCount.toString(),
-            icon: Icons.people_alt_rounded,
-          ),
-          _statCard(
-            title: 'VIP',
-            value: _vipCount.toString(),
-            icon: Icons.star_rounded,
-          ),
-          _statCard(
-            title: 'Orders',
-            value: _totalOrders.toString(),
-            icon: Icons.receipt_long_rounded,
-          ),
-          _statCard(
-            title: 'Spent',
-            value: _money(_totalSpent),
-            icon: Icons.currency_rupee_rounded,
-          ),
-        ],
-      ),
-    );
-  }
+class _CommandCard extends StatelessWidget {
+  const _CommandCard({
+    required this.customerCount,
+    required this.vipCount,
+    required this.totalOrders,
+    required this.totalSpent,
+  });
 
-  Widget _statCard({
-    required String title,
-    required String value,
-    required IconData icon,
-  }) {
-    return Container(
-      width: 150,
-      margin: const EdgeInsets.only(right: 12),
-      padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(
-        color: const Color(0xFF101010),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.09),
-        ),
-      ),
-      child: Row(
+  final int customerCount;
+  final int vipCount;
+  final int totalOrders;
+  final String totalSpent;
+
+  @override
+  Widget build(BuildContext context) {
+    return OrdifyGlassCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            height: 38,
-            width: 38,
-            decoration: BoxDecoration(
-              color: const Color(0xFF00FFCC).withOpacity(0.10),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Icon(
-              icon,
-              color: const Color(0xFF00FFCC),
-              size: 20,
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  value,
-                  overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.inter(
-                    color: Colors.white,
-                    fontSize: 17,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  title,
-                  overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.inter(
-                    color: Colors.white38,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                  ),
+          const Text(
+            'Customer Command Center',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 25,
+              fontWeight: FontWeight.w900,
+              shadows: [
+                Shadow(
+                  color: Color(0xFFFFD6D6),
+                  blurRadius: 12,
                 ),
               ],
             ),
           ),
+          const SizedBox(height: 8),
+          const Text(
+            'Manage buyers, VIP customers, contact details and repeat orders.',
+            style: TextStyle(
+              color: Color(0xFFE8FFF2),
+              fontWeight: FontWeight.w700,
+              height: 1.35,
+            ),
+          ),
+          const SizedBox(height: 22),
+          Row(
+            children: [
+              Expanded(
+                child: OrdifyMetricCard(
+                  icon: Icons.people_alt_rounded,
+                  value: customerCount.toString(),
+                  label: 'Customers',
+                  color: const Color(0xFF34F087),
+                  minHeight: 112,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: OrdifyMetricCard(
+                  icon: Icons.star_rounded,
+                  value: vipCount.toString(),
+                  label: 'VIP',
+                  color: const Color(0xFFFFC857),
+                  minHeight: 112,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: OrdifyMetricCard(
+                  icon: Icons.receipt_long_rounded,
+                  value: totalOrders.toString(),
+                  label: 'Orders',
+                  color: const Color(0xFF9DF6FF),
+                  minHeight: 112,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: OrdifyMetricCard(
+                  icon: Icons.currency_rupee_rounded,
+                  value: totalSpent,
+                  label: 'Spent',
+                  color: const Color(0xFFB788FF),
+                  minHeight: 112,
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );
   }
+}
 
-  Widget _messageBox() {
+class _SearchBox extends StatelessWidget {
+  const _SearchBox({
+    required this.onChanged,
+  });
+
+  final ValueChanged<String> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return OrdifyGlassCard(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: TextField(
+        onChanged: onChanged,
+        style: GoogleFonts.inter(
+          color: Colors.white,
+          fontWeight: FontWeight.w700,
+        ),
+        decoration: InputDecoration(
+          border: InputBorder.none,
+          icon: const Icon(
+            Icons.search_rounded,
+            color: Color(0xFF34F087),
+          ),
+          hintText: 'Search customer, Instagram, email or phone',
+          hintStyle: GoogleFonts.inter(
+            color: const Color(0xFFE8FFF2).withOpacity(0.70),
+            fontWeight: FontWeight.w600,
+            fontSize: 13,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MessageBox extends StatelessWidget {
+  const _MessageBox({
+    required this.message,
+  });
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
     final isSuccess =
-        _message!.contains('successfully') || _message!.contains('updated');
+        message.contains('successfully') || message.contains('updated');
 
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: isSuccess
-            ? const Color(0xFF00FFCC).withOpacity(0.08)
-            : Colors.redAccent.withOpacity(0.10),
-        borderRadius: BorderRadius.circular(16),
+            ? const Color(0xFF34F087).withOpacity(0.10)
+            : Colors.redAccent.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(
           color: isSuccess
-              ? const Color(0xFF00FFCC).withOpacity(0.20)
-              : Colors.redAccent.withOpacity(0.25),
+              ? const Color(0xFF34F087).withOpacity(0.25)
+              : Colors.redAccent.withOpacity(0.30),
         ),
       ),
       child: Text(
-        _message!,
+        message,
         style: GoogleFonts.inter(
-          color: isSuccess ? const Color(0xFF00FFCC) : Colors.redAccent,
+          color: isSuccess ? const Color(0xFF34F087) : Colors.redAccent,
           fontSize: 13,
-          fontWeight: FontWeight.w700,
+          fontWeight: FontWeight.w800,
         ),
       ),
     );
   }
+}
 
-  Widget _emptyState() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(28),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              height: 76,
-              width: 76,
-              decoration: BoxDecoration(
-                color: const Color(0xFF00FFCC).withOpacity(0.10),
-                borderRadius: BorderRadius.circular(26),
-              ),
-              child: const Icon(
-                Icons.people_alt_rounded,
-                color: Color(0xFF00FFCC),
-                size: 34,
-              ),
-            ),
-            const SizedBox(height: 18),
-            Text(
-              'No customers yet',
-              style: GoogleFonts.inter(
-                color: Colors.white,
-                fontSize: 20,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Add customers here. Then you can create orders faster from the Orders screen.',
-              textAlign: TextAlign.center,
-              style: GoogleFonts.inter(
-                color: Colors.white54,
-                fontSize: 13,
-                height: 1.45,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+class _CustomerCard extends StatelessWidget {
+  const _CustomerCard({
+    required this.customer,
+    required this.money,
+    required this.toInt,
+    required this.isSaving,
+    required this.onEdit,
+    required this.onVip,
+    required this.onDelete,
+  });
 
-  Widget _customerCard(dynamic customer) {
+  final Map<String, dynamic> customer;
+  final String Function(dynamic value) money;
+  final int Function(dynamic value) toInt;
+  final bool isSaving;
+  final VoidCallback onEdit;
+  final VoidCallback onVip;
+  final VoidCallback onDelete;
+
+  @override
+  Widget build(BuildContext context) {
     final name = customer['display_name']?.toString();
     final username = customer['instagram_username']?.toString() ?? 'customer';
     final email = customer['email']?.toString() ?? '';
     final phone = customer['phone']?.toString() ?? '';
     final isVip = customer['is_vip'] == true;
-    final totalOrders = _toInt(customer['total_orders']);
-    final totalSpent = _money(customer['total_spent']);
+    final totalOrders = toInt(customer['total_orders']);
+    final totalSpent = money(customer['total_spent']);
+
+    final displayName = name == null || name.isEmpty ? username : name;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF101010),
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(
-          color: isVip
-              ? Colors.amberAccent.withOpacity(0.25)
-              : Colors.white.withOpacity(0.08),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                height: 48,
-                width: 48,
-                decoration: BoxDecoration(
+      child: OrdifyGlassCard(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Container(
+                  height: 54,
+                  width: 54,
+                  decoration: BoxDecoration(
+                    color: isVip
+                        ? const Color(0xFFFFC857).withOpacity(0.18)
+                        : const Color(0xFF34F087).withOpacity(0.18),
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  child: Icon(
+                    isVip ? Icons.star_rounded : Icons.person_rounded,
+                    color: isVip
+                        ? const Color(0xFFFFC857)
+                        : const Color(0xFF34F087),
+                    size: 28,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        displayName,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.inter(
+                          color: Colors.white,
+                          fontSize: 17,
+                          fontWeight: FontWeight.w900,
+                          shadows: const [
+                            Shadow(
+                              color: Color(0xFFFFC8C8),
+                              blurRadius: 8,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '@$username',
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.inter(
+                          color: const Color(0xFFE8FFF2),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                _StatusPill(
+                  text: isVip ? 'VIP' : 'REGULAR',
                   color: isVip
-                      ? Colors.amberAccent.withOpacity(0.12)
-                      : const Color(0xFF00FFCC).withOpacity(0.10),
-                  borderRadius: BorderRadius.circular(17),
+                      ? const Color(0xFFFFC857)
+                      : const Color(0xFF34F087),
                 ),
-                child: Icon(
-                  isVip ? Icons.star_rounded : Icons.person_rounded,
-                  color: isVip ? Colors.amberAccent : const Color(0xFF00FFCC),
-                  size: 24,
+              ],
+            ),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                Expanded(
+                  child: _MiniInfo(
+                    title: 'Orders',
+                    value: totalOrders.toString(),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 13),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      name == null || name.isEmpty ? username : name,
-                      overflow: TextOverflow.ellipsis,
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _MiniInfo(
+                    title: 'Spent',
+                    value: totalSpent,
+                  ),
+                ),
+              ],
+            ),
+            if (email.isNotEmpty || phone.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              if (email.isNotEmpty)
+                _ContactRow(
+                  icon: Icons.email_rounded,
+                  text: email,
+                ),
+              if (phone.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                _ContactRow(
+                  icon: Icons.phone_rounded,
+                  text: phone,
+                ),
+              ],
+            ],
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: isSaving ? null : onEdit,
+                    icon: const Icon(Icons.edit_rounded, size: 18),
+                    label: Text(
+                      'Edit',
                       style: GoogleFonts.inter(
-                        color: Colors.white,
-                        fontSize: 16,
                         fontWeight: FontWeight.w900,
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '@$username',
-                      overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.inter(
-                        color: Colors.white38,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF34F087),
+                      side: BorderSide(
+                        color: Colors.white.withOpacity(0.22),
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
                       ),
                     ),
-                  ],
+                  ),
                 ),
-              ),
-              _vipChip(isVip),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(
-                child: _miniInfo(
-                  title: 'Orders',
-                  value: totalOrders.toString(),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: isSaving ? null : onVip,
+                    icon: Icon(
+                      isVip ? Icons.star_border_rounded : Icons.star_rounded,
+                      size: 18,
+                    ),
+                    label: Text(
+                      isVip ? 'Regular' : 'VIP',
+                      style: GoogleFonts.inter(
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: isVip
+                          ? const Color(0xFFE8FFF2)
+                          : const Color(0xFFFFC857),
+                      side: BorderSide(
+                        color: isVip
+                            ? Colors.white.withOpacity(0.22)
+                            : const Color(0xFFFFC857).withOpacity(0.38),
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _miniInfo(
-                  title: 'Spent',
-                  value: totalSpent,
+                const SizedBox(width: 10),
+                IconButton(
+                  onPressed: isSaving ? null : onDelete,
+                  icon: const Icon(
+                    Icons.delete_outline_rounded,
+                    color: Colors.redAccent,
+                  ),
                 ),
-              ),
-            ],
-          ),
-          if (email.isNotEmpty || phone.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            if (email.isNotEmpty)
-              _contactRow(
-                icon: Icons.email_rounded,
-                text: email,
-              ),
-            if (phone.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              _contactRow(
-                icon: Icons.phone_rounded,
-                text: phone,
-              ),
-            ],
+              ],
+            ),
           ],
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: _isSaving
-                      ? null
-                      : () => _openCustomerSheet(customer: customer),
-                  icon: const Icon(Icons.edit_rounded, size: 18),
-                  label: Text(
-                    'Edit',
-                    style: GoogleFonts.inter(
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.white70,
-                    side: BorderSide(
-                      color: Colors.white.withOpacity(0.16),
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(15),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: _isSaving ? null : () => _toggleVip(customer),
-                  icon: Icon(
-                    isVip ? Icons.star_border_rounded : Icons.star_rounded,
-                    size: 18,
-                  ),
-                  label: Text(
-                    isVip ? 'Remove VIP' : 'Make VIP',
-                    style: GoogleFonts.inter(
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor:
-                        isVip ? Colors.white70 : Colors.amberAccent,
-                    side: BorderSide(
-                      color: isVip
-                          ? Colors.white.withOpacity(0.16)
-                          : Colors.amberAccent.withOpacity(0.35),
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(15),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              IconButton(
-                onPressed: _isSaving ? null : () => _deleteCustomer(customer),
-                icon: const Icon(
-                  Icons.delete_outline_rounded,
-                  color: Colors.redAccent,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _vipChip(bool isVip) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
-      decoration: BoxDecoration(
-        color: isVip
-            ? Colors.amberAccent.withOpacity(0.12)
-            : Colors.white.withOpacity(0.06),
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Text(
-        isVip ? 'VIP' : 'Regular',
-        style: GoogleFonts.inter(
-          color: isVip ? Colors.amberAccent : Colors.white38,
-          fontSize: 10,
-          fontWeight: FontWeight.w900,
         ),
       ),
     );
   }
+}
 
-  Widget _miniInfo({
-    required String title,
-    required String value,
-  }) {
+class _MiniInfo extends StatelessWidget {
+  const _MiniInfo({
+    required this.title,
+    required this.value,
+  });
+
+  final String title;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(11),
       decoration: BoxDecoration(
-        color: const Color(0xFF050505),
-        borderRadius: BorderRadius.circular(14),
+        color: Colors.white.withOpacity(0.06),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: Colors.white.withOpacity(0.06),
+          color: Colors.white.withOpacity(0.12),
         ),
       ),
       child: Column(
@@ -1075,7 +1262,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
             title.toUpperCase(),
             overflow: TextOverflow.ellipsis,
             style: GoogleFonts.inter(
-              color: Colors.white38,
+              color: const Color(0xFFE8FFF2),
               fontSize: 9,
               fontWeight: FontWeight.w800,
               letterSpacing: 0.8,
@@ -1087,24 +1274,32 @@ class _CustomersScreenState extends State<CustomersScreen> {
             overflow: TextOverflow.ellipsis,
             style: GoogleFonts.inter(
               color: Colors.white,
-              fontSize: 12,
-              fontWeight: FontWeight.w800,
+              fontSize: 13,
+              fontWeight: FontWeight.w900,
             ),
           ),
         ],
       ),
     );
   }
+}
 
-  Widget _contactRow({
-    required IconData icon,
-    required String text,
-  }) {
+class _ContactRow extends StatelessWidget {
+  const _ContactRow({
+    required this.icon,
+    required this.text,
+  });
+
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
     return Row(
       children: [
         Icon(
           icon,
-          color: Colors.white38,
+          color: const Color(0xFFE8FFF2),
           size: 16,
         ),
         const SizedBox(width: 8),
@@ -1113,63 +1308,85 @@ class _CustomersScreenState extends State<CustomersScreen> {
             text,
             overflow: TextOverflow.ellipsis,
             style: GoogleFonts.inter(
-              color: Colors.white54,
+              color: const Color(0xFFE8FFF2),
               fontSize: 12,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w700,
             ),
           ),
         ),
       ],
     );
   }
+}
 
-  Widget _sheetLabel(String text) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+class _StatusPill extends StatelessWidget {
+  const _StatusPill({
+    required this.text,
+    required this.color,
+  });
+
+  final String text;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.20),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: color.withOpacity(0.42)),
+      ),
       child: Text(
         text,
         style: GoogleFonts.inter(
-          color: Colors.white70,
-          fontSize: 13,
-          fontWeight: FontWeight.w800,
+          color: color,
+          fontSize: 10,
+          fontWeight: FontWeight.w900,
         ),
       ),
     );
   }
+}
 
-  Widget _darkTextField({
-    required TextEditingController controller,
-    required String hintText,
-    TextInputType keyboardType = TextInputType.text,
-  }) {
-    return TextField(
-      controller: controller,
-      keyboardType: keyboardType,
-      style: GoogleFonts.inter(
-        color: Colors.white,
-        fontWeight: FontWeight.w700,
-      ),
-      decoration: InputDecoration(
-        hintText: hintText,
-        hintStyle: GoogleFonts.inter(
-          color: Colors.white30,
-          fontSize: 13,
-        ),
-        filled: true,
-        fillColor: const Color(0xFF101010),
-        contentPadding: const EdgeInsets.all(14),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(
-            color: Colors.white.withOpacity(0.10),
+class _EmptyState extends StatelessWidget {
+  const _EmptyState({
+    required this.hasSearch,
+  });
+
+  final bool hasSearch;
+
+  @override
+  Widget build(BuildContext context) {
+    return OrdifyGlassCard(
+      child: Column(
+        children: [
+          const Icon(
+            Icons.people_alt_rounded,
+            size: 58,
+            color: Color(0xFF34F087),
           ),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(
-            color: Color(0xFF00FFCC),
+          const SizedBox(height: 16),
+          Text(
+            hasSearch ? 'No matching customers' : 'No customers yet',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.w900,
+            ),
           ),
-        ),
+          const SizedBox(height: 8),
+          Text(
+            hasSearch
+                ? 'Try another name, Instagram username, email or phone.'
+                : 'Add customers here. Then create orders faster from the Orders screen.',
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Color(0xFFE8FFF2),
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
       ),
     );
   }

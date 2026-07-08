@@ -3,9 +3,13 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 // --- Auth States ---
 abstract class AuthState {}
-class AuthInitial extends AuthState {} // Used EXCLUSIVELY for the Splash Screen display window
+
+class AuthInitial extends AuthState {}
+
 class AuthLoading extends AuthState {}
+
 class AuthSuccess extends AuthState {}
+
 class AuthError extends AuthState {
   final String message;
   AuthError(this.message);
@@ -20,20 +24,19 @@ class AuthNotifier extends StateNotifier<AuthState> {
   final _supabase = Supabase.instance.client;
 
   void _initAuthListener() async {
-    // Let the splash screen animate for a full 2 seconds
-    await Future.delayed(const Duration(seconds: 6));
+    await Future.delayed(const Duration(seconds: 2));
 
     final initialSession = _supabase.auth.currentSession;
+
     if (initialSession != null) {
       state = AuthSuccess();
     } else {
-      // Not logged in? Shift to AuthError with an empty string to signal the router to open /login
-      state = AuthError(''); 
+      state = AuthError('');
     }
 
-    // Listen for real-time authentication events across the app
     _supabase.auth.onAuthStateChange.listen((data) {
       final session = data.session;
+
       if (session != null) {
         state = AuthSuccess();
       } else {
@@ -42,7 +45,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
     });
   }
 
-  // Business Registration Pipeline
   Future<void> signUpWithBusiness({
     required String email,
     required String password,
@@ -50,21 +52,24 @@ class AuthNotifier extends StateNotifier<AuthState> {
     required String instagramHandle,
   }) async {
     state = AuthLoading();
+
     try {
       final response = await _supabase.auth.signUp(
-  email: email,
-  password: password,
-  data: {
-    'business_name': businessName,
-    'instagram_handle': instagramHandle,
-  },
-);
+        email: email.trim(),
+        password: password.trim(),
+        data: {
+          'business_name': businessName.trim(),
+          'instagram_handle': instagramHandle.trim(),
+        },
+      );
 
-if (response.session != null) {
-  state = AuthSuccess();
-} else {
-  state = AuthError('Account created. Please confirm your email, then log in.');
-}
+      if (response.session != null) {
+        state = AuthSuccess();
+      } else {
+        state = AuthError(
+          'Account created. Please login now.',
+        );
+      }
     } on AuthException catch (e) {
       state = AuthError(e.message);
     } catch (e) {
@@ -72,11 +77,18 @@ if (response.session != null) {
     }
   }
 
-  // Log-In Pipeline
-  Future<void> signIn({required String email, required String password}) async {
+  Future<void> signIn({
+    required String email,
+    required String password,
+  }) async {
     state = AuthLoading();
+
     try {
-      await _supabase.auth.signInWithPassword(email: email, password: password);
+      await _supabase.auth.signInWithPassword(
+        email: email.trim(),
+        password: password.trim(),
+      );
+
       state = AuthSuccess();
     } on AuthException catch (e) {
       state = AuthError(e.message);
@@ -87,11 +99,10 @@ if (response.session != null) {
 
   Future<void> signOut() async {
     await _supabase.auth.signOut();
-    state = AuthError(''); // Triggers router to move back to login immediately
+    state = AuthError('');
   }
 }
 
-// --- Provider ---
 final authProvider = StateNotifierProvider<AuthNotifier, AuthState>(
   (ref) => AuthNotifier(),
 );

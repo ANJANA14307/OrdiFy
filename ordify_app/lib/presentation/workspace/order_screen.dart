@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ordify_app/core/network/api_client.dart';
 
-import 'ordify_workspace_widgets.dart';
-
 class OrdersScreen extends StatefulWidget {
   const OrdersScreen({super.key});
 
@@ -103,9 +101,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
         isScrollControlled: true,
         backgroundColor: const Color(0xFF0B1510),
         shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(
-            top: Radius.circular(32),
-          ),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
         ),
         builder: (_) {
           return CreateOrderSheet(
@@ -185,9 +181,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
     try {
       await apiClient.patch(
         '/orders/$orderId/status',
-        data: {
-          'status': next,
-        },
+        data: {'status': next},
       );
 
       await fetchOrders();
@@ -234,10 +228,9 @@ class _OrdersScreenState extends State<OrdersScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFF050807),
       floatingActionButton: FloatingActionButton.extended(
-        heroTag: 'orders_create_order_fab',
         backgroundColor: const Color(0xFF34F087),
         foregroundColor: Colors.black,
-        elevation: 12,
+        elevation: 14,
         onPressed: openCreateOrderSheet,
         icon: const Icon(Icons.add_rounded),
         label: const Text(
@@ -249,13 +242,13 @@ class _OrdersScreenState extends State<OrdersScreen> {
         decoration: const BoxDecoration(
           gradient: RadialGradient(
             center: Alignment.topRight,
-            radius: 1.25,
+            radius: 1.2,
             colors: [
-              Color(0xFF16C76A),
-              Color(0xFF0A2418),
+              Color(0xFF0FCB63),
+              Color(0xFF0B2418),
               Color(0xFF050807),
             ],
-            stops: [0.0, 0.36, 1.0],
+            stops: [0.0, 0.38, 1.0],
           ),
         ),
         child: SafeArea(
@@ -268,7 +261,6 @@ class _OrdersScreenState extends State<OrdersScreen> {
                         child: Text(
                           errorMessage!,
                           style: const TextStyle(color: Colors.white),
-                          textAlign: TextAlign.center,
                         ),
                       ),
                     )
@@ -294,7 +286,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                             'Order Pipeline',
                             style: TextStyle(
                               color: Colors.white,
-                              fontSize: 24,
+                              fontSize: 25,
                               fontWeight: FontWeight.w900,
                               shadows: [
                                 Shadow(
@@ -336,7 +328,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                                       border: Border.all(
                                         color: isSelected
                                             ? const Color(0xFF34F087)
-                                            : Colors.white.withOpacity(0.20),
+                                            : Colors.white.withOpacity(0.22),
                                       ),
                                     ),
                                     child: Center(
@@ -347,7 +339,6 @@ class _OrdersScreenState extends State<OrdersScreen> {
                                               ? Colors.black
                                               : Colors.white,
                                           fontWeight: FontWeight.w900,
-                                          fontSize: 13,
                                         ),
                                       ),
                                     ),
@@ -411,7 +402,7 @@ class _Header extends StatelessWidget {
             borderRadius: BorderRadius.circular(18),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF34F087).withOpacity(0.42),
+                color: const Color(0xFF34F087).withOpacity(0.45),
                 blurRadius: 24,
               ),
             ],
@@ -484,7 +475,7 @@ class _CommandCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return OrdifyGlassCard(
+    return _GlassCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -519,7 +510,7 @@ class _CommandCard extends StatelessWidget {
                   icon: Icons.receipt_long_rounded,
                   value: total.toString(),
                   label: 'Orders',
-                  iconColor: const Color(0xFF34F087),
+                  iconColor: Color(0xFF34F087),
                 ),
               ),
               const SizedBox(width: 12),
@@ -528,7 +519,7 @@ class _CommandCard extends StatelessWidget {
                   icon: Icons.bolt_rounded,
                   value: active.toString(),
                   label: 'Active',
-                  iconColor: const Color(0xFFFFC857),
+                  iconColor: Color(0xFFFFC857),
                 ),
               ),
               const SizedBox(width: 12),
@@ -537,7 +528,7 @@ class _CommandCard extends StatelessWidget {
                   icon: Icons.check_circle_rounded,
                   value: delivered.toString(),
                   label: 'Done',
-                  iconColor: const Color(0xFF9DF6FF),
+                  iconColor: Color(0xFF9DF6FF),
                 ),
               ),
             ],
@@ -564,34 +555,29 @@ class _MetricTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      constraints: const BoxConstraints(minHeight: 118),
+      height: 118,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.06),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withOpacity(0.20)),
+        border: Border.all(color: Colors.white.withOpacity(0.22)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(icon, color: iconColor, size: 25),
-          const SizedBox(height: 14),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
-            child: Text(
-              value,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 26,
-                fontWeight: FontWeight.w900,
-                shadows: [
-                  Shadow(color: Color(0xFFFFD6D6), blurRadius: 8),
-                ],
-              ),
+          const Spacer(),
+          Text(
+            value,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 26,
+              fontWeight: FontWeight.w900,
+              shadows: [
+                Shadow(color: Color(0xFFFFD6D6), blurRadius: 8),
+              ],
             ),
           ),
-          const SizedBox(height: 4),
           Text(
             label,
             style: const TextStyle(
@@ -635,7 +621,7 @@ class _OrderCard extends StatelessWidget {
 
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
-      child: OrdifyGlassCard(
+      child: _GlassCard(
         padding: const EdgeInsets.all(16),
         child: InkWell(
           borderRadius: BorderRadius.circular(26),
@@ -648,7 +634,7 @@ class _OrderCard extends StatelessWidget {
                     height: 54,
                     width: 54,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF34F087).withOpacity(0.18),
+                      color: const Color(0xFF34F087).withOpacity(0.22),
                       borderRadius: BorderRadius.circular(18),
                     ),
                     child: Icon(
@@ -745,14 +731,45 @@ class _OrderCard extends StatelessWidget {
   }
 }
 
+class _GlassCard extends StatelessWidget {
+  const _GlassCard({
+    required this.child,
+    this.padding = const EdgeInsets.all(22),
+  });
+
+  final Widget child;
+  final EdgeInsets padding;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: padding,
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A2D24).withOpacity(0.78),
+        borderRadius: BorderRadius.circular(30),
+        border: Border.all(color: Colors.white.withOpacity(0.25)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.30),
+            blurRadius: 28,
+            offset: const Offset(0, 16),
+          ),
+        ],
+      ),
+      child: child,
+    );
+  }
+}
+
 class _EmptyOrders extends StatelessWidget {
   const _EmptyOrders();
 
   @override
   Widget build(BuildContext context) {
-    return OrdifyGlassCard(
-      child: const Column(
-        children: [
+    return _GlassCard(
+      child: Column(
+        children: const [
           Icon(
             Icons.receipt_long_outlined,
             size: 58,
@@ -810,15 +827,13 @@ class _CreateOrderSheetState extends State<CreateOrderSheet> {
 
   List<Map<String, dynamic>> get customerMaps {
     return widget.customers
-        .whereType<Map>()
-        .map((customer) => Map<String, dynamic>.from(customer))
+        .map((customer) => Map<String, dynamic>.from(customer as Map))
         .toList();
   }
 
   List<Map<String, dynamic>> get productMaps {
     return widget.products
-        .whereType<Map>()
-        .map((product) => Map<String, dynamic>.from(product))
+        .map((product) => Map<String, dynamic>.from(product as Map))
         .toList();
   }
 
@@ -905,191 +920,169 @@ class _CreateOrderSheetState extends State<CreateOrderSheet> {
   }
 
   @override
-  void dispose() {
-    quantityController.dispose();
-    notesController.dispose();
-    variantController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     final customers = customerMaps;
     final products = productMaps;
 
-    return Theme(
-      data: Theme.of(context).copyWith(
-        inputDecorationTheme: const InputDecorationTheme(
-          labelStyle: TextStyle(color: Color(0xFFE8FFF2)),
-          enabledBorder: OutlineInputBorder(
-            borderSide: BorderSide(color: Color(0xFF466B59)),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderSide: BorderSide(color: Color(0xFF34F087), width: 2),
-          ),
-        ),
-        textTheme: Theme.of(context).textTheme.apply(
-              bodyColor: Colors.white,
-              displayColor: Colors.white,
-            ),
+    return Padding(
+      padding: EdgeInsets.only(
+        left: 18,
+        right: 18,
+        top: 18,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 18,
       ),
-      child: Padding(
-        padding: EdgeInsets.only(
-          left: 18,
-          right: 18,
-          top: 18,
-          bottom: MediaQuery.of(context).viewInsets.bottom + 18,
-        ),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                height: 4,
-                width: 48,
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.28),
-                  borderRadius: BorderRadius.circular(999),
-                ),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              height: 4,
+              width: 48,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.28),
+                borderRadius: BorderRadius.circular(999),
               ),
-              const SizedBox(height: 18),
-              const Text(
-                'Create Order',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                  fontWeight: FontWeight.w900,
-                  shadows: [
-                    Shadow(
-                      color: Color(0xFFFFC8C8),
-                      blurRadius: 8,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 18),
-              DropdownButtonFormField<String>(
-                value: selectedCustomerId,
-                dropdownColor: const Color(0xFF0B1510),
-                decoration: const InputDecoration(
-                  labelText: 'Customer',
-                ),
-                items: customers.map((customer) {
-                  final id = customer['id']?.toString();
-                  final name = customer['display_name']?.toString() ??
-                      customer['instagram_username']?.toString() ??
-                      customer['email']?.toString() ??
-                      'Customer';
-
-                  return DropdownMenuItem<String>(
-                    value: id,
-                    child: Text(name),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    selectedCustomerId = value;
-                  });
-                },
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                value: selectedProductId,
-                dropdownColor: const Color(0xFF0B1510),
-                decoration: const InputDecoration(
-                  labelText: 'Product',
-                ),
-                items: products.map((product) {
-                  final id = product['id']?.toString();
-                  final name = product['name']?.toString() ?? 'Product';
-                  final price = product['price']?.toString() ?? '0';
-                  final stock = product['stock_count']?.toString() ?? '0';
-
-                  return DropdownMenuItem<String>(
-                    value: id,
-                    child: Text('$name • ₹$price • Stock $stock'),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    selectedProductId = value;
-                  });
-                },
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: quantityController,
-                keyboardType: TextInputType.number,
-                style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(
-                  labelText: 'Quantity',
-                ),
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                value: source,
-                dropdownColor: const Color(0xFF0B1510),
-                decoration: const InputDecoration(
-                  labelText: 'Order Source',
-                ),
-                items: const [
-                  DropdownMenuItem(value: 'manual', child: Text('Manual')),
-                  DropdownMenuItem(value: 'dm', child: Text('Instagram DM')),
-                  DropdownMenuItem(
-                    value: 'comment',
-                    child: Text('Instagram Comment'),
+            ),
+            const SizedBox(height: 18),
+            const Text(
+              'Create Order',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 24,
+                fontWeight: FontWeight.w900,
+                shadows: [
+                  Shadow(
+                    color: Color(0xFFFFC8C8),
+                    blurRadius: 8,
                   ),
                 ],
-                onChanged: (value) {
-                  setState(() {
-                    source = value ?? 'manual';
-                  });
-                },
               ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: variantController,
-                style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(
-                  labelText: 'Variant / Size / Color',
+            ),
+            const SizedBox(height: 18),
+            DropdownButtonFormField<String>(
+              value: selectedCustomerId,
+              dropdownColor: const Color(0xFF0B1510),
+              decoration: const InputDecoration(
+                labelText: 'Customer',
+                border: OutlineInputBorder(),
+              ),
+              items: customers.map((customer) {
+                final id = customer['id']?.toString();
+                final name = customer['display_name']?.toString() ??
+                    customer['instagram_username']?.toString() ??
+                    customer['email']?.toString() ??
+                    'Customer';
+
+                return DropdownMenuItem<String>(
+                  value: id,
+                  child: Text(name),
+                );
+              }).toList(),
+              onChanged: (value) {
+                setState(() {
+                  selectedCustomerId = value;
+                });
+              },
+            ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<String>(
+              value: selectedProductId,
+              dropdownColor: const Color(0xFF0B1510),
+              decoration: const InputDecoration(
+                labelText: 'Product',
+                border: OutlineInputBorder(),
+              ),
+              items: products.map((product) {
+                final id = product['id']?.toString();
+                final name = product['name']?.toString() ?? 'Product';
+                final price = product['price']?.toString() ?? '0';
+                final stock = product['stock_count']?.toString() ?? '0';
+
+                return DropdownMenuItem<String>(
+                  value: id,
+                  child: Text('$name • ₹$price • Stock $stock'),
+                );
+              }).toList(),
+              onChanged: (value) {
+                setState(() {
+                  selectedProductId = value;
+                });
+              },
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: quantityController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Quantity',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<String>(
+              value: source,
+              dropdownColor: const Color(0xFF0B1510),
+              decoration: const InputDecoration(
+                labelText: 'Order Source',
+                border: OutlineInputBorder(),
+              ),
+              items: const [
+                DropdownMenuItem(value: 'manual', child: Text('Manual')),
+                DropdownMenuItem(value: 'dm', child: Text('Instagram DM')),
+                DropdownMenuItem(
+                  value: 'comment',
+                  child: Text('Instagram Comment'),
                 ),
+              ],
+              onChanged: (value) {
+                setState(() {
+                  source = value ?? 'manual';
+                });
+              },
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: variantController,
+              decoration: const InputDecoration(
+                labelText: 'Variant / Size / Color',
+                border: OutlineInputBorder(),
               ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: notesController,
-                maxLines: 3,
-                style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(
-                  labelText: 'Notes',
-                ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: notesController,
+              maxLines: 3,
+              decoration: const InputDecoration(
+                labelText: 'Notes',
+                border: OutlineInputBorder(),
               ),
-              const SizedBox(height: 18),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFF34F087),
-                    foregroundColor: Colors.black,
-                    padding: const EdgeInsets.symmetric(vertical: 15),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(18),
-                    ),
+            ),
+            const SizedBox(height: 18),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFF34F087),
+                  foregroundColor: Colors.black,
+                  padding: const EdgeInsets.symmetric(vertical: 15),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(18),
                   ),
-                  onPressed: isSubmitting ? null : createOrder,
-                  child: isSubmitting
-                      ? const SizedBox(
-                          height: 18,
-                          width: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Text(
-                          'Create Order',
-                          style: TextStyle(fontWeight: FontWeight.w900),
-                        ),
                 ),
+                onPressed: isSubmitting ? null : createOrder,
+                child: isSubmitting
+                    ? const SizedBox(
+                        height: 18,
+                        width: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text(
+                        'Create Order',
+                        style: TextStyle(fontWeight: FontWeight.w900),
+                      ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

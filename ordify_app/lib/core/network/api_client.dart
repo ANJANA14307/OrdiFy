@@ -6,15 +6,19 @@ import 'error_handler.dart';
 class ApiClient {
   late final dio.Dio dioClient;
 
-  static const String _baseUrl = 'http://192.168.137.1:8000';
+  static const String _baseUrl = String.fromEnvironment(
+    'API_BASE_URL',
+    defaultValue: 'http://10.69.241.119:8000',
+  );
 
   ApiClient() {
     dioClient = dio.Dio(
       dio.BaseOptions(
         baseUrl: _baseUrl,
-        connectTimeout: const Duration(seconds: 15),
-        receiveTimeout: const Duration(seconds: 15),
-        headers: {
+        connectTimeout: const Duration(seconds: 20),
+        receiveTimeout: const Duration(seconds: 20),
+        sendTimeout: const Duration(seconds: 20),
+        headers: const {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
@@ -27,42 +31,74 @@ class ApiClient {
           final session = Supabase.instance.client.auth.currentSession;
           final token = session?.accessToken;
 
-          if (token != null) {
+          if (token != null && token.isNotEmpty) {
             options.headers['Authorization'] = 'Bearer $token';
           }
 
-          return handler.next(options);
+          handler.next(options);
         },
-        onError: (dio.DioException error, handler) {
+        onError: (error, handler) {
           ErrorHandler.handle(error);
-          return handler.next(error);
+          handler.next(error);
         },
       ),
     );
   }
 
-  Future<dio.Response> get(String path) {
-    return dioClient.get(path);
+  Future<dio.Response<dynamic>> get(
+    String path, {
+    Map<String, dynamic>? queryParameters,
+  }) {
+    return dioClient.get(
+      path,
+      queryParameters: queryParameters,
+    );
   }
 
-  Future<dio.Response> post(String path, {dynamic data}) {
-    return dioClient.post(path, data: data);
+  Future<dio.Response<dynamic>> post(
+    String path, {
+    dynamic data,
+    Map<String, dynamic>? queryParameters,
+  }) {
+    return dioClient.post(
+      path,
+      data: data,
+      queryParameters: queryParameters,
+    );
   }
 
-  Future<dio.Response> patch(String path, {dynamic data}) {
-    return dioClient.patch(path, data: data);
+  Future<dio.Response<dynamic>> patch(
+    String path, {
+    dynamic data,
+  }) {
+    return dioClient.patch(
+      path,
+      data: data,
+    );
   }
 
-  Future<dio.Response> put(String path, {dynamic data}) {
-    return dioClient.put(path, data: data);
+  Future<dio.Response<dynamic>> put(
+    String path, {
+    dynamic data,
+  }) {
+    return dioClient.put(
+      path,
+      data: data,
+    );
   }
 
-  Future<dio.Response> delete(String path) {
-    return dioClient.delete(path);
+  Future<dio.Response<dynamic>> delete(
+    String path, {
+    dynamic data,
+  }) {
+    return dioClient.delete(
+      path,
+      data: data,
+    );
   }
 
-  Future<dio.Response> uploadProductImage(String filePath) async {
-    final fileName = filePath.split('/').last;
+  Future<dio.Response<dynamic>> uploadProductImage(String filePath) async {
+    final fileName = filePath.split(RegExp(r'[\\/]')).last;
 
     final formData = dio.FormData.fromMap({
       'file': await dio.MultipartFile.fromFile(

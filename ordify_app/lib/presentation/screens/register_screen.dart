@@ -4,8 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/auth/auth_notifier.dart';
-import '../workspace/ordify_workspace_widgets.dart';
-import 'auth_ui_widgets.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
@@ -15,190 +13,213 @@ class RegisterScreen extends ConsumerStatefulWidget {
 }
 
 class _RegisterScreenState extends ConsumerState<RegisterScreen> {
-  final _businessController = TextEditingController();
-  final _instagramController = TextEditingController();
+  final _bizNameController = TextEditingController();
+  final _instaController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
   @override
   void dispose() {
-    _businessController.dispose();
-    _instagramController.dispose();
+    _bizNameController.dispose();
+    _instaController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
-  void _register() {
-    final businessName = _businessController.text.trim();
-    final instagramHandle = _instagramController.text.trim();
-    final email = _emailController.text.trim();
-    final password = _passwordController.text.trim();
+  void _showMessage(String message, {bool success = false}) {
+    if (message.trim().isEmpty) return;
 
-    if (businessName.isEmpty) {
-      showOrdifyAuthSnack(context, 'Business name is required');
-      return;
-    }
-
-    if (!email.contains('@')) {
-      showOrdifyAuthSnack(context, 'Enter a valid email address');
-      return;
-    }
-
-    if (password.length < 6) {
-      showOrdifyAuthSnack(context, 'Password must be at least 6 characters');
-      return;
-    }
-
-    ref.read(authProvider.notifier).signUpWithBusiness(
-          email: email,
-          password: password,
-          businessName: businessName,
-          instagramHandle: instagramHandle,
-        );
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: GoogleFonts.inter(
+            color: Colors.white,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        backgroundColor:
+            success ? const Color(0xFF0E7A4F) : Colors.orange.shade800,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
-    final isLoading = authState is AuthLoading;
 
     ref.listen<AuthState>(authProvider, (previous, current) {
-      if (current is AuthSuccess) {
-        context.go('/dashboard');
+      if (current is AuthError) {
+        _showMessage(current.message);
+
+        if (current.message.toLowerCase().contains('account created')) {
+          context.go('/login');
+        }
       }
 
-      if (current is AuthError && current.message.isNotEmpty) {
-        showOrdifyAuthSnack(context, current.message);
+      if (current is AuthSuccess) {
+        context.go('/dashboard');
       }
     });
 
     return Scaffold(
-      backgroundColor: ordifyBg,
-      body: OrdifyAuthBackground(
-        child: SafeArea(
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(24, 24, 24, 30),
+      backgroundColor: const Color(0xFF050A08),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  InkWell(
-                    onTap: () => context.go('/login'),
-                    borderRadius: BorderRadius.circular(16),
-                    child: Container(
-                      height: 42,
-                      width: 42,
-                      decoration: BoxDecoration(
-                        color: ordifyCard.withValues(alpha: 0.78),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.08),
-                        ),
-                      ),
-                      child: const Icon(
-                        Icons.arrow_back_ios_new_rounded,
-                        color: ordifyGreen,
-                        size: 16,
-                      ),
+              GestureDetector(
+                onTap: () => context.go('/login'),
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0D0D11),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: const Color(0xFF1A1A22),
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  const OrdifyAuthBrand(),
-                ],
-              ),
-
-              const SizedBox(height: 42),
-
-              Text(
-                'Start your shop\nwith OrdiFy.',
-                style: GoogleFonts.inter(
-                  color: Colors.white,
-                  fontSize: 41,
-                  height: 1.04,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: -1.2,
+                  child: const Icon(
+                    Icons.arrow_back_ios_new,
+                    size: 16,
+                    color: Color(0xFF35E58F),
+                  ),
                 ),
               ),
-
-              const SizedBox(height: 14),
-
+              const SizedBox(height: 32),
               Text(
-                'Create your seller workspace to manage products, orders, customers, and business tasks easily.',
-                style: GoogleFonts.inter(
-                  color: Colors.white60,
+                'Initialize\nWorkspace.',
+                style: Theme.of(context).textTheme.displayLarge?.copyWith(
+                      fontSize: 44,
+                      height: 1.1,
+                      fontWeight: FontWeight.w900,
+                    ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Launch your brand dashboard and streamline your active catalog pipeline.',
+                style: GoogleFonts.lexend(
+                  color: Colors.grey[500],
                   fontSize: 14,
-                  height: 1.5,
-                  fontWeight: FontWeight.w600,
                 ),
               ),
-
-              const SizedBox(height: 30),
-
-              OrdifyAuthCard(
-                child: Column(
-                  children: [
-                    OrdifyAuthInput(
-                      controller: _businessController,
-                      label: 'BUSINESS NAME',
-                      hint: 'Example: Anjana Boutique',
-                      icon: Icons.storefront_rounded,
-                    ),
-                    const SizedBox(height: 14),
-                    OrdifyAuthInput(
-                      controller: _instagramController,
-                      label: 'INSTAGRAM HANDLE',
-                      hint: '@your_shop',
-                      icon: Icons.alternate_email_rounded,
-                    ),
-                    const SizedBox(height: 14),
-                    OrdifyAuthInput(
-                      controller: _emailController,
-                      label: 'EMAIL ADDRESS',
-                      hint: 'you@example.com',
-                      icon: Icons.mail_rounded,
-                      keyboardType: TextInputType.emailAddress,
-                    ),
-                    const SizedBox(height: 14),
-                    OrdifyAuthInput(
-                      controller: _passwordController,
-                      label: 'CREATE PASSWORD',
-                      hint: 'Minimum 6 characters',
-                      icon: Icons.lock_rounded,
-                      obscureText: true,
-                    ),
-                    const SizedBox(height: 22),
-                    OrdifyAuthButton(
-                      label: 'Create shop account',
-                      isLoading: isLoading,
-                      onPressed: _register,
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 22),
-
-              Center(
-                child: TextButton(
-                  onPressed: () => context.go('/login'),
-                  child: RichText(
-                    text: TextSpan(
-                      style: GoogleFonts.inter(
-                        color: Colors.white54,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                      ),
-                      children: const [
-                        TextSpan(text: 'Already have an account? '),
-                        TextSpan(
-                          text: 'Log in',
-                          style: TextStyle(
-                            color: ordifyGreen,
-                            fontWeight: FontWeight.w900,
+              const SizedBox(height: 40),
+              Expanded(
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  child: Column(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF07070A),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: const Color(0xFF14141A),
+                            width: 1,
                           ),
                         ),
-                      ],
-                    ),
+                        child: Column(
+                          children: [
+                            TextField(
+                              controller: _bizNameController,
+                              decoration: const InputDecoration(
+                                labelText: 'BUSINESS NAME',
+                                labelStyle: TextStyle(
+                                  fontSize: 11,
+                                  letterSpacing: 1.5,
+                                ),
+                              ),
+                            ),
+                            Container(
+                              height: 1,
+                              color: const Color(0xFF14141A),
+                            ),
+                            TextField(
+                              controller: _instaController,
+                              decoration: const InputDecoration(
+                                labelText: 'INSTAGRAM HANDLE',
+                                labelStyle: TextStyle(
+                                  fontSize: 11,
+                                  letterSpacing: 1.5,
+                                ),
+                              ),
+                            ),
+                            Container(
+                              height: 1,
+                              color: const Color(0xFF14141A),
+                            ),
+                            TextField(
+                              controller: _emailController,
+                              keyboardType: TextInputType.emailAddress,
+                              decoration: const InputDecoration(
+                                labelText: 'EMAIL ADDRESS',
+                                labelStyle: TextStyle(
+                                  fontSize: 11,
+                                  letterSpacing: 1.5,
+                                ),
+                              ),
+                            ),
+                            Container(
+                              height: 1,
+                              color: const Color(0xFF14141A),
+                            ),
+                            TextField(
+                              controller: _passwordController,
+                              obscureText: true,
+                              decoration: const InputDecoration(
+                                labelText: 'CREATE PASSWORD',
+                                labelStyle: TextStyle(
+                                  fontSize: 11,
+                                  letterSpacing: 1.5,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 40),
+                      if (authState is AuthLoading)
+                        const Center(
+                          child: CircularProgressIndicator(
+                            color: Color(0xFF35E58F),
+                          ),
+                        )
+                      else
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF35E58F),
+                            foregroundColor: Colors.black,
+                            minimumSize: const Size.fromHeight(60),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            elevation: 0,
+                          ),
+                          onPressed: () {
+                            ref
+                                .read(authProvider.notifier)
+                                .signUpWithBusiness(
+                                  email: _emailController.text,
+                                  password: _passwordController.text,
+                                  businessName: _bizNameController.text,
+                                  instagramHandle: _instaController.text,
+                                );
+                          },
+                          child: Text(
+                            'CREATE ACCOUNT',
+                            style: GoogleFonts.lexend(
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 1.5,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                 ),
               ),

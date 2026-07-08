@@ -4,8 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/auth/auth_notifier.dart';
-import '../workspace/ordify_workspace_widgets.dart';
-import 'auth_ui_widgets.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -25,159 +23,206 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     super.dispose();
   }
 
-  void _login() {
-    final email = _emailController.text.trim();
-    final password = _passwordController.text.trim();
+  void _showMessage(String message, {bool success = false}) {
+    if (message.trim().isEmpty) return;
 
-    if (!email.contains('@')) {
-      showOrdifyAuthSnack(context, 'Enter a valid email address');
-      return;
-    }
-
-    if (password.isEmpty) {
-      showOrdifyAuthSnack(context, 'Password is required');
-      return;
-    }
-
-    ref.read(authProvider.notifier).signIn(
-          email: email,
-          password: password,
-        );
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: GoogleFonts.inter(
+            color: Colors.white,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        backgroundColor:
+            success ? const Color(0xFF0E7A4F) : Colors.redAccent,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
-    final isLoading = authState is AuthLoading;
 
     ref.listen<AuthState>(authProvider, (previous, current) {
-      if (current is AuthSuccess) {
-        context.go('/dashboard');
+      if (current is AuthError) {
+        _showMessage(current.message);
       }
 
-      if (current is AuthError && current.message.isNotEmpty) {
-        showOrdifyAuthSnack(context, current.message);
+      if (current is AuthSuccess) {
+        context.go('/dashboard');
       }
     });
 
     return Scaffold(
-      backgroundColor: ordifyBg,
-      body: OrdifyAuthBackground(
-        child: SafeArea(
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(24, 28, 24, 28),
-            children: [
-              const OrdifyAuthBrand(),
-
-              const SizedBox(height: 58),
-
-              Text(
-                'Your business,\nsimplified.',
-                style: GoogleFonts.inter(
-                  color: Colors.white,
-                  fontSize: 43,
-                  height: 1.04,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: -1.3,
-                ),
-              ),
-
-              const SizedBox(height: 14),
-
-              Text(
-                'Log in to manage your orders, products, customers, and daily seller tasks from one clean workspace.',
-                style: GoogleFonts.inter(
-                  color: Colors.white60,
-                  fontSize: 14,
-                  height: 1.5,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-
-              const SizedBox(height: 34),
-
-              OrdifyAuthCard(
+      backgroundColor: const Color(0xFF050A08),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 20),
+          child: CustomScrollView(
+            slivers: [
+              SliverFillRemaining(
+                hasScrollBody: false,
                 child: Column(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    OrdifyAuthInput(
-                      controller: _emailController,
-                      label: 'EMAIL ADDRESS',
-                      hint: 'you@example.com',
-                      icon: Icons.mail_rounded,
-                      keyboardType: TextInputType.emailAddress,
-                    ),
-                    const SizedBox(height: 14),
-                    OrdifyAuthInput(
-                      controller: _passwordController,
-                      label: 'PASSWORD',
-                      hint: 'Enter your password',
-                      icon: Icons.lock_rounded,
-                      obscureText: true,
-                    ),
-                    const SizedBox(height: 22),
-                    OrdifyAuthButton(
-                      label: 'Log in to OrdiFy',
-                      isLoading: isLoading,
-                      onPressed: _login,
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 22),
-
-              Center(
-                child: TextButton(
-                  onPressed: () => context.go('/register'),
-                  child: RichText(
-                    text: TextSpan(
-                      style: GoogleFonts.inter(
-                        color: Colors.white54,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
+                    Padding(
+                      padding: const EdgeInsets.only(top: 20),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 12,
+                            height: 12,
+                            decoration: const BoxDecoration(
+                              color: Color(0xFF35E58F),
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'ORDIFY',
+                            style: GoogleFonts.lexend(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 3,
+                              color: const Color(0xFF35E58F),
+                            ),
+                          ),
+                        ],
                       ),
-                      children: const [
-                        TextSpan(text: 'New to OrdiFy? '),
-                        TextSpan(
-                          text: 'Create your shop account',
-                          style: TextStyle(
-                            color: ordifyGreen,
-                            fontWeight: FontWeight.w900,
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Control\nYour Engine.',
+                          style: Theme.of(context)
+                              .textTheme
+                              .displayLarge
+                              ?.copyWith(
+                                fontSize: 44,
+                                height: 1.1,
+                                fontWeight: FontWeight.w900,
+                              ),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'Sign in to manage inventory, orders, customers and business analytics.',
+                          style: GoogleFonts.lexend(
+                            color: Colors.grey[500],
+                            fontSize: 14,
+                            height: 1.5,
                           ),
                         ),
+                        const SizedBox(height: 48),
+                        Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF07070A),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: const Color(0xFF14141A),
+                              width: 1,
+                            ),
+                          ),
+                          child: Column(
+                            children: [
+                              TextField(
+                                controller: _emailController,
+                                keyboardType: TextInputType.emailAddress,
+                                style: GoogleFonts.lexend(fontSize: 15),
+                                decoration: const InputDecoration(
+                                  labelText: 'EMAIL ADDRESS',
+                                  labelStyle: TextStyle(
+                                    fontSize: 11,
+                                    letterSpacing: 1.5,
+                                  ),
+                                ),
+                              ),
+                              Container(
+                                height: 1,
+                                color: const Color(0xFF14141A),
+                              ),
+                              TextField(
+                                controller: _passwordController,
+                                obscureText: true,
+                                style: GoogleFonts.lexend(fontSize: 15),
+                                decoration: const InputDecoration(
+                                  labelText: 'PASSWORD',
+                                  labelStyle: TextStyle(
+                                    fontSize: 11,
+                                    letterSpacing: 1.5,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 32),
+                        if (authState is AuthLoading)
+                          const Center(
+                            child: CircularProgressIndicator(
+                              color: Color(0xFF35E58F),
+                            ),
+                          )
+                        else
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF35E58F),
+                              foregroundColor: Colors.black,
+                              minimumSize: const Size.fromHeight(60),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              elevation: 0,
+                            ),
+                            onPressed: () {
+                              ref.read(authProvider.notifier).signIn(
+                                    email: _emailController.text,
+                                    password: _passwordController.text,
+                                  );
+                            },
+                            child: Text(
+                              'AUTHENTICATE',
+                              style: GoogleFonts.lexend(
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 1.5,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
                       ],
                     ),
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 28),
-
-              OrdifyAuthCard(
-                padding: const EdgeInsets.all(15),
-                child: Row(
-                  children: [
-                    Container(
-                      height: 42,
-                      width: 42,
-                      decoration: BoxDecoration(
-                        color: ordifyGreen.withValues(alpha: 0.14),
-                        borderRadius: BorderRadius.circular(15),
-                      ),
-                      child: const Icon(
-                        Icons.inventory_2_rounded,
-                        color: ordifyGreen,
-                      ),
-                    ),
-                    const SizedBox(width: 13),
-                    Expanded(
-                      child: Text(
-                        'Built for Instagram sellers and small businesses who want simple order and stock control.',
-                        style: GoogleFonts.inter(
-                          color: Colors.white54,
-                          fontSize: 12,
-                          height: 1.4,
-                          fontWeight: FontWeight.w600,
+                    Align(
+                      alignment: Alignment.center,
+                      child: Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: TextButton(
+                          onPressed: () => context.go('/register'),
+                          style: TextButton.styleFrom(
+                            foregroundColor: const Color(0xFF35E58F),
+                          ),
+                          child: RichText(
+                            text: TextSpan(
+                              style: GoogleFonts.lexend(
+                                color: Colors.grey[600],
+                                fontSize: 13,
+                              ),
+                              children: const [
+                                TextSpan(text: 'New here? '),
+                                TextSpan(
+                                  text: 'Register your business',
+                                  style: TextStyle(
+                                    color: Color(0xFF35E58F),
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
                       ),
                     ),
