@@ -664,6 +664,8 @@ class _OrderCard extends StatelessWidget {
                       children: [
                         Text(
                           orderNumber,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.w900,
@@ -679,6 +681,8 @@ class _OrderCard extends StatelessWidget {
                         const SizedBox(height: 4),
                         Text(
                           '₹$amount • $source',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                             color: Color(0xFFE8FFF2),
                             fontWeight: FontWeight.w700,
@@ -687,6 +691,7 @@ class _OrderCard extends StatelessWidget {
                       ],
                     ),
                   ),
+                  const SizedBox(width: 10),
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 11,
@@ -861,6 +866,13 @@ class _CreateOrderSheetState extends State<CreateOrderSheet> {
     final quantity = int.tryParse(quantityController.text.trim()) ?? 1;
     final price = double.tryParse('${product['price']}') ?? 0;
 
+    if (quantity <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Quantity must be at least 1')),
+      );
+      return;
+    }
+
     setState(() => isSubmitting = true);
 
     try {
@@ -970,6 +982,8 @@ class _CreateOrderSheetState extends State<CreateOrderSheet> {
               const SizedBox(height: 18),
               DropdownButtonFormField<String>(
                 value: selectedCustomerId,
+                isExpanded: true,
+                menuMaxHeight: 320,
                 dropdownColor: const Color(0xFF0B1510),
                 decoration: const InputDecoration(
                   labelText: 'Customer',
@@ -983,7 +997,11 @@ class _CreateOrderSheetState extends State<CreateOrderSheet> {
 
                   return DropdownMenuItem<String>(
                     value: id,
-                    child: Text(name),
+                    child: Text(
+                      name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   );
                 }).toList(),
                 onChanged: (value) {
@@ -995,6 +1013,8 @@ class _CreateOrderSheetState extends State<CreateOrderSheet> {
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
                 value: selectedProductId,
+                isExpanded: true,
+                menuMaxHeight: 320,
                 dropdownColor: const Color(0xFF0B1510),
                 decoration: const InputDecoration(
                   labelText: 'Product',
@@ -1007,7 +1027,11 @@ class _CreateOrderSheetState extends State<CreateOrderSheet> {
 
                   return DropdownMenuItem<String>(
                     value: id,
-                    child: Text('$name • ₹$price • Stock $stock'),
+                    child: Text(
+                      '$name • ₹$price • Stock $stock',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   );
                 }).toList(),
                 onChanged: (value) {
@@ -1028,6 +1052,7 @@ class _CreateOrderSheetState extends State<CreateOrderSheet> {
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
                 value: source,
+                isExpanded: true,
                 dropdownColor: const Color(0xFF0B1510),
                 decoration: const InputDecoration(
                   labelText: 'Order Source',
