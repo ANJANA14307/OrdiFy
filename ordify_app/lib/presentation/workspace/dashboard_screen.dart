@@ -196,60 +196,62 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   username: _instagramUsername,
                   onConnect: _connectInstagram,
                 ),
-                const SizedBox(height: 24),
-                const _GlowText(
-                  'Quick Flow',
-                  fontSize: 22,
+                const SizedBox(height: 22),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _DashboardNavPill(
+                        label: 'Quick Flow',
+                        isActive: true,
+                        onTap: () {},
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _DashboardNavPill(
+                        label: 'Account Settings',
+                        isActive: false,
+                        onTap: () => context.push('/settings'),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 14),
-                _ActionTile(
-                  icon: Icons.analytics_rounded,
-                  title: 'Analytics Hub',
-                  subtitle:
-                      'View revenue, orders, stock health and business insights',
-                  color: const Color(0xFF9DF6FF),
-                  onTap: () => context.push('/analytics'),
-                ),
-                const SizedBox(height: 12),
-                _ActionTile(
-                  icon: Icons.settings_rounded,
-                  title: 'Settings',
-                  subtitle:
-                      'Manage business profile, Instagram handle and account info',
-                  color: const Color(0xFFB788FF),
-                  onTap: () => context.push('/settings'),
-                ),
-                const SizedBox(height: 12),
-                _ActionTile(
-                  icon: Icons.receipt_long_rounded,
-                  title: 'Orders Pipeline',
-                  subtitle: 'Create and track customer orders',
-                  color: ordifyGreen,
-                  onTap: () => context.go('/orders'),
-                ),
-                const SizedBox(height: 12),
-                _ActionTile(
-                  icon: Icons.people_alt_rounded,
-                  title: 'Customer CRM',
-                  subtitle: 'Manage buyers and repeat customers',
-                  color: ordifyBlue,
-                  onTap: () => context.go('/customers'),
-                ),
-                const SizedBox(height: 12),
-                _ActionTile(
-                  icon: Icons.inventory_2_rounded,
-                  title: 'Stock Control',
-                  subtitle: 'Manage products and low stock alerts',
-                  color: ordifyYellow,
-                  onTap: () => context.go('/inventory'),
-                ),
-                const SizedBox(height: 12),
-                _ActionTile(
-                  icon: Icons.auto_awesome_rounded,
-                  title: 'OrdiFy AI',
-                  subtitle: 'Get smart stock and sales suggestions',
-                  color: const Color(0xFFB788FF),
-                  onTap: () => context.go('/ai-tools'),
+                const SizedBox(height: 16),
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  children: [
+                    _ShortcutTile(
+                      icon: Icons.analytics_rounded,
+                      title: 'Analytics',
+                      color: const Color(0xFF9DF6FF),
+                      onTap: () => context.push('/analytics'),
+                    ),
+                    _ShortcutTile(
+                      icon: Icons.receipt_long_rounded,
+                      title: 'Orders',
+                      color: ordifyGreen,
+                      onTap: () => context.go('/orders'),
+                    ),
+                    _ShortcutTile(
+                      icon: Icons.inventory_2_rounded,
+                      title: 'Stock',
+                      color: ordifyYellow,
+                      onTap: () => context.go('/inventory'),
+                    ),
+                    _ShortcutTile(
+                      icon: Icons.people_alt_rounded,
+                      title: 'CRM',
+                      color: ordifyBlue,
+                      onTap: () => context.go('/customers'),
+                    ),
+                    _ShortcutTile(
+                      icon: Icons.auto_awesome_rounded,
+                      title: 'AI',
+                      color: const Color(0xFFB788FF),
+                      onTap: () => context.go('/ai-tools'),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -421,72 +423,99 @@ class _InstagramCard extends StatelessWidget {
   }
 }
 
-class _ActionTile extends StatelessWidget {
-  const _ActionTile({
+class _DashboardNavPill extends StatelessWidget {
+  const _DashboardNavPill({
+    required this.label,
+    required this.isActive,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool isActive;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(18),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          color: isActive
+              ? ordifyGreen.withOpacity(0.12)
+              : Colors.white.withOpacity(0.02),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: isActive
+                ? ordifyGreen.withOpacity(0.32)
+                : Colors.white.withOpacity(0.08),
+          ),
+        ),
+        child: Text(
+          label,
+          textAlign: TextAlign.center,
+          style: GoogleFonts.inter(
+            color: isActive ? ordifyGreen : Colors.white70,
+            fontSize: 12,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ShortcutTile extends StatelessWidget {
+  const _ShortcutTile({
     required this.icon,
     required this.title,
-    required this.subtitle,
     required this.color,
     required this.onTap,
   });
 
   final IconData icon;
   final String title;
-  final String subtitle;
   final Color color;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return OrdifyGlassCard(
-      padding: const EdgeInsets.all(16),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(26),
-        onTap: onTap,
-        child: Row(
-          children: [
-            Container(
-              height: 54,
-              width: 54,
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.18),
-                borderRadius: BorderRadius.circular(18),
+    return SizedBox(
+      width: (MediaQuery.sizeOf(context).width - 72) / 2,
+      child: OrdifyGlassCard(
+        padding: const EdgeInsets.all(16),
+        radius: 22,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(22),
+          onTap: onTap,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                height: 44,
+                width: 44,
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.18),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(
+                  icon,
+                  color: color,
+                  size: 22,
+                ),
               ),
-              child: Icon(
-                icon,
-                color: color,
-                size: 28,
+              const SizedBox(height: 12),
+              Text(
+                title,
+                style: GoogleFonts.inter(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _GlowText(
-                    title,
-                    fontSize: 17,
-                    soft: true,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    subtitle,
-                    style: GoogleFonts.inter(
-                      color: const Color(0xFFE8FFF2),
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      height: 1.35,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const Icon(
-              Icons.arrow_forward_ios_rounded,
-              color: Color(0xFFE8FFF2),
-              size: 16,
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -515,8 +544,8 @@ class _GlowText extends StatelessWidget {
         fontWeight: FontWeight.w800,
         shadows: [
           Shadow(
-            color: ordifyGreen.withOpacity(0.12),
-            blurRadius: 10,
+            color: ordifyGreen.withOpacity(0.04),
+            blurRadius: 6,
           ),
         ],
       ),

@@ -106,13 +106,13 @@ class OrdifyGlassCard extends StatelessWidget {
         color: ordifyCard.withOpacity(0.82),
         borderRadius: BorderRadius.circular(radius),
         border: Border.all(
-          color: Colors.white.withOpacity(0.08),
+          color: Colors.white.withOpacity(0.06),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.18),
-            blurRadius: 18,
-            offset: const Offset(0, 10),
+            color: Colors.black.withOpacity(0.12),
+            blurRadius: 12,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
@@ -187,8 +187,8 @@ class OrdifyTopHeader extends StatelessWidget {
                   letterSpacing: -0.4,
                   shadows: [
                     Shadow(
-                      color: ordifyGreen.withOpacity(0.20),
-                      blurRadius: 12,
+                      color: ordifyGreen.withOpacity(0.06),
+                      blurRadius: 6,
                     ),
                   ],
                 ),
