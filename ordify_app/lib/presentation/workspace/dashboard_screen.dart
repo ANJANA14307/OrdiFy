@@ -111,18 +111,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
         : (((_productCount - _lowStockCount) / _productCount) * 100).round();
 
     return Scaffold(
-      backgroundColor: const Color(0xFF050807),
+      backgroundColor: const Color(0xFF090E0C),
       body: Container(
         decoration: const BoxDecoration(
           gradient: RadialGradient(
             center: Alignment.topRight,
             radius: 1.25,
             colors: [
-              Color(0xFF16C76A),
-              Color(0xFF0A2418),
-              Color(0xFF050807),
+              Color(0xFF173125),
+              Color(0xFF0B1714),
+              Color(0xFF090E0C),
             ],
-            stops: [0.0, 0.36, 1.0],
+            stops: [0.0, 0.35, 1.0],
           ),
         ),
         child: SafeArea(
@@ -144,16 +144,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     children: [
                       const _GlowText(
                         'Business Command Center',
-                        fontSize: 25,
+                        fontSize: 24,
                       ),
                       const SizedBox(height: 8),
                       Text(
                         'Track your catalog, Instagram connection, and daily operations from one place.',
                         style: GoogleFonts.inter(
-                          color: const Color(0xFFE8FFF2),
+                          color: const Color(0xFFDDEAE4),
                           height: 1.4,
                           fontSize: 13,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                       const SizedBox(height: 22),
@@ -199,7 +199,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 const SizedBox(height: 24),
                 const _GlowText(
                   'Quick Flow',
-                  fontSize: 24,
+                  fontSize: 22,
                 ),
                 const SizedBox(height: 14),
                 _ActionTile(
@@ -510,17 +510,13 @@ class _GlowText extends StatelessWidget {
       text,
       overflow: TextOverflow.ellipsis,
       style: GoogleFonts.inter(
-        color: Colors.white,
+        color: const Color(0xFFF1F6F4),
         fontSize: fontSize,
-        fontWeight: FontWeight.w900,
+        fontWeight: FontWeight.w800,
         shadows: [
           Shadow(
-            color: soft ? const Color(0xFFFFC8C8) : const Color(0xFFFFD6D6),
-            blurRadius: soft ? 8 : 12,
-          ),
-          Shadow(
-            color: ordifyGreen.withOpacity(0.25),
-            blurRadius: soft ? 8 : 14,
+            color: ordifyGreen.withOpacity(0.12),
+            blurRadius: 10,
           ),
         ],
       ),

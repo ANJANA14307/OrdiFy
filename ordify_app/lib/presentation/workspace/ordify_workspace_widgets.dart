@@ -3,13 +3,13 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-const ordifyBg = Color(0xFF050A08);
-const ordifyCard = Color(0xFF1A2D24);
-const ordifyGreen = Color(0xFF35E58F);
-const ordifyGreenDark = Color(0xFF06100B);
-const ordifyYellow = Color(0xFFFFC857);
-const ordifyBlue = Color(0xFF7BE0FF);
-const ordifyRed = Color(0xFFFF6B7A);
+const ordifyBg = Color(0xFF090E0C);
+const ordifyCard = Color(0xFF121C18);
+const ordifyGreen = Color(0xFF67D8A9);
+const ordifyGreenDark = Color(0xFF0A1713);
+const ordifyYellow = Color(0xFFE1B55A);
+const ordifyBlue = Color(0xFF9DDCFB);
+const ordifyRed = Color(0xFFFF7D88);
 
 class OrdifyBackground extends StatelessWidget {
   final Widget child;
@@ -77,7 +77,7 @@ class OrdifyBlurCircle extends StatelessWidget {
         height: size,
         width: size,
         decoration: BoxDecoration(
-          color: color,
+          color: color.withOpacity(0.85),
           shape: BoxShape.circle,
         ),
       ),
@@ -103,16 +103,16 @@ class OrdifyGlassCard extends StatelessWidget {
       width: double.infinity,
       padding: padding,
       decoration: BoxDecoration(
-        color: ordifyCard.withOpacity(0.78),
+        color: ordifyCard.withOpacity(0.82),
         borderRadius: BorderRadius.circular(radius),
         border: Border.all(
-          color: Colors.white.withOpacity(0.22),
+          color: Colors.white.withOpacity(0.08),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.30),
-            blurRadius: 28,
-            offset: const Offset(0, 16),
+            color: Colors.black.withOpacity(0.18),
+            blurRadius: 18,
+            offset: const Offset(0, 10),
           ),
         ],
       ),

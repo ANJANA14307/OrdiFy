@@ -41,25 +41,58 @@ class OrdiFyApp extends ConsumerWidget {
       darkTheme: ThemeData(
         useMaterial3: true,
         brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF050A08),
-        primaryColor: const Color(0xFF35E58F),
+        scaffoldBackgroundColor: const Color(0xFF0A120F),
+        primaryColor: const Color(0xFF61D7A7),
         colorScheme: const ColorScheme.dark(
-          primary: Color(0xFF35E58F),
-          secondary: Color(0xFFFFC857),
-          surface: Color(0xFF0B1510),
+          primary: Color(0xFF61D7A7),
+          secondary: Color(0xFFF4C96C),
+          surface: Color(0xFF121B18),
+          surfaceContainerHighest: Color(0xFF1A2A25),
+          onSurface: Color(0xFFEAF5F1),
+          onPrimary: Color(0xFF09140F),
+        ),
+        pageTransitionsTheme: const PageTransitionsTheme(
+          builders: {
+            TargetPlatform.android: CupertinoPageTransitionsBuilder(),
+            TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+            TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
+          },
         ),
         textTheme: GoogleFonts.interTextTheme(
           ThemeData.dark().textTheme,
+        ).copyWith(
+          displayLarge: const TextStyle(color: Color(0xFFF1F7F4)),
+          headlineLarge: const TextStyle(color: Color(0xFFF1F7F4)),
+          titleLarge: const TextStyle(color: Color(0xFFF1F7F4)),
+          bodyLarge: const TextStyle(color: Color(0xFFE5EFEA)),
+          bodyMedium: const TextStyle(color: Color(0xFFDDE9E4)),
+          labelLarge: const TextStyle(color: Color(0xFFE5EFEA)),
+        ),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Color(0xFF0A120F),
+          foregroundColor: Color(0xFFF1F7F4),
+          elevation: 0,
+        ),
+        cardTheme: CardTheme(
+          color: const Color(0xFF121B18),
+          elevation: 0,
+          margin: EdgeInsets.zero,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: BorderSide(
+              color: Colors.white.withOpacity(0.05),
+            ),
+          ),
         ),
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
-          fillColor: const Color(0xFF0D1712),
+          fillColor: const Color(0xFF141F1C),
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 18,
             vertical: 18,
           ),
           labelStyle: const TextStyle(
-            color: Color(0xFF35E58F),
+            color: Color(0xFF61D7A7),
             fontWeight: FontWeight.w700,
           ),
           hintStyle: TextStyle(
@@ -69,26 +102,26 @@ class OrdiFyApp extends ConsumerWidget {
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(18),
             borderSide: BorderSide(
-              color: Colors.white.withOpacity(0.10),
+              color: Colors.white.withOpacity(0.08),
             ),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(18),
             borderSide: BorderSide(
-              color: Colors.white.withOpacity(0.10),
+              color: Colors.white.withOpacity(0.08),
             ),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(18),
             borderSide: const BorderSide(
-              color: Color(0xFF35E58F),
+              color: Color(0xFF61D7A7),
               width: 1.5,
             ),
           ),
           errorBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(18),
             borderSide: const BorderSide(
-              color: Color(0xFFFF6B7A),
+              color: Color(0xFFFF7B7B),
               width: 1.3,
             ),
           ),
