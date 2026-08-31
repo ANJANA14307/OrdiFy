@@ -1,59 +1,63 @@
-# 🛍️ OrdiFy - Smart Order Management Platform
+# OrdiFy - Smart Order Management Platform
 
 **OrdiFy** is a production-ready order management and fulfillment platform designed for e-commerce sellers. It integrates Instagram commerce, AI-powered suggestions, automated invoicing, and multi-channel payment processing.
 
 ---
 
-## ✨ Features
+## Features
 
-- 📱 **Mobile-First Flutter App** - Beautiful, responsive UI for iOS and Android
-- 🔌 **REST API Backend** - FastAPI-powered microservices architecture
-- 🛒 **Order Management** - Create, track, and fulfill orders seamlessly
-- 💳 **Multi-Channel Payments** - Support for COD, Razorpay, and more
-- 📸 **Instagram Integration** - Sync orders directly from Instagram
-- 🤖 **AI Suggestions** - Smart recommendations powered by Google Generative AI
-- 📄 **Invoice Generation** - Automatic PDF invoicing with branding
-- 📊 **Analytics Dashboard** - Real-time sales metrics and insights
-- 🔔 **Notifications** - Real-time order and payment updates
-- 🔐 **Enterprise Security** - Supabase authentication, secure credential management
+* **Mobile-First Flutter App** - Beautiful, responsive UI for iOS and Android
+* **REST API Backend** - FastAPI-powered microservices architecture
+* **Order Management** - Create, track, and fulfill orders seamlessly
+* **Multi-Channel Payments** - Support for COD, Razorpay, and more
+* **Instagram Integration** - Sync orders directly from Instagram
+* **AI Suggestions** - Smart recommendations powered by Google Generative AI
+* **Invoice Generation** - Automatic PDF invoicing with branding
+* **Analytics Dashboard** - Real-time sales metrics and insights
+* **Notifications** - Real-time order and payment updates
+* **Enterprise Security** - Supabase authentication, secure credential management
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 ### Frontend
-- **Framework:** Flutter + Dart
-- **State Management:** Flutter Riverpod
-- **Routing:** GoRouter
-- **UI Libraries:** Material 3, Google Fonts
-- **Backend Communication:** Dio HTTP client
-- **Database:** Supabase
+
+* **Framework:** Flutter + Dart
+* **State Management:** Flutter Riverpod
+* **Routing:** GoRouter
+* **UI Libraries:** Material 3, Google Fonts
+* **Backend Communication:** Dio HTTP client
+* **Database:** Supabase
 
 ### Backend
-- **Framework:** FastAPI
-- **Database:** PostgreSQL (via Supabase)
-- **APIs:**
-  - Authentication & Profile
-  - Order Management
-  - Payment Processing
-  - Invoice Generation
-  - Customer Management
-  - Product Catalog
-  - Analytics & Reporting
-  - AI Chat & Suggestions
-  - Activity Logs
-  - Notifications
-  - Instagram Integration
+
+* **Framework:** FastAPI
+* **Database:** PostgreSQL (via Supabase)
+* **APIs:**
+
+  * Authentication & Profile
+  * Order Management
+  * Payment Processing
+  * Invoice Generation
+  * Customer Management
+  * Product Catalog
+  * Analytics & Reporting
+  * AI Chat & Suggestions
+  * Activity Logs
+  * Notifications
+  * Instagram Integration
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
-- Flutter SDK (^3.12.1)
-- Python 3.9+
-- Supabase account
-- Google API key (for AI features)
+
+* Flutter SDK (^3.12.1)
+* Python 3.9+
+* Supabase account
+* Google API key (for AI features)
 
 ### Backend Setup
 
@@ -105,9 +109,9 @@ flutter run -d ios
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
-```
+```text
 OrdiFy/
 ├── ordify_app/                 # Flutter mobile app
 │   ├── lib/
@@ -142,9 +146,10 @@ OrdiFy/
 
 ---
 
-## 🔑 Environment Variables
+## Environment Variables
 
 ### Backend (.env)
+
 ```env
 SUPABASE_URL=your_supabase_url
 SUPABASE_KEY=your_service_role_key
@@ -153,25 +158,28 @@ ENVIRONMENT=development
 ```
 
 ### Frontend (.env)
+
 ```env
 SUPABASE_URL=your_supabase_url
 SUPABASE_ANON_KEY=your_anon_key
 API_BASE_URL=http://localhost:8000
 ```
 
-**⚠️ Never commit .env files to version control**
+**Never commit .env files to version control**
 
 ---
 
-## 🧪 API Endpoints
+## API Endpoints
 
 ### Health Check
+
 ```bash
 GET /health
 GET /
 ```
 
 ### Authentication
+
 ```bash
 POST /auth/register
 POST /auth/login
@@ -179,6 +187,7 @@ POST /auth/logout
 ```
 
 ### Orders
+
 ```bash
 GET    /orders/
 POST   /orders/
@@ -188,6 +197,7 @@ DELETE /orders/{order_id}
 ```
 
 ### Payments
+
 ```bash
 POST   /payments/create-payment
 POST   /payments/webhook/razorpay
@@ -195,6 +205,7 @@ GET    /payments/{order_id}/status
 ```
 
 ### Invoices
+
 ```bash
 POST   /invoices/generate
 GET    /invoices/{invoice_id}
@@ -202,6 +213,7 @@ POST   /invoices/{invoice_id}/email
 ```
 
 ### AI Features
+
 ```bash
 POST   /ai-chat/send-message
 POST   /ai-suggestions/get-suggestions
@@ -211,27 +223,29 @@ See full API documentation at `http://localhost:8000/docs`
 
 ---
 
-## 🛡️ Security
+## Security
 
-- ✅ Environment variables for all secrets
-- ✅ Supabase authentication layer
-- ✅ CORS configuration
-- ✅ Secure credential storage (Flutter)
-- ✅ JWT token management
-- ✅ Input validation (Pydantic)
+* Environment variables for all secrets
+* Supabase authentication layer
+* CORS configuration
+* Secure credential storage (Flutter)
+* JWT token management
+* Input validation (Pydantic)
 
 **Security Checklist:**
-- [ ] Never commit .env files
-- [ ] Rotate API keys regularly
-- [ ] Use HTTPS in production
-- [ ] Enable Supabase RLS policies
-- [ ] Validate all user inputs
+
+* [ ] Never commit .env files
+* [ ] Rotate API keys regularly
+* [ ] Use HTTPS in production
+* [ ] Enable Supabase RLS policies
+* [ ] Validate all user inputs
 
 ---
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
 ### Backend Won't Start
+
 ```bash
 # Clear cache and reinstall
 pip install --force-reinstall -r requirements.txt
@@ -239,6 +253,7 @@ python -c "import main; print('OK')"
 ```
 
 ### Flutter Dependencies Issue
+
 ```bash
 flutter clean
 flutter pub get
@@ -246,22 +261,23 @@ flutter pub upgrade
 ```
 
 ### Supabase Connection Error
-- Verify .env has correct SUPABASE_URL and SUPABASE_ANON_KEY
-- Check Supabase project is active
-- Ensure your IP is not blocked
+
+* Verify .env has correct SUPABASE_URL and SUPABASE_ANON_KEY
+* Check Supabase project is active
+* Ensure your IP is not blocked
 
 ---
 
-## 📚 Documentation
+## Documentation
 
-- [Flutter Docs](https://flutter.dev/docs)
-- [FastAPI Docs](https://fastapi.tiangolo.com/)
-- [Supabase Docs](https://supabase.com/docs)
-- [Google AI Docs](https://ai.google.dev/)
+* [Flutter Docs](https://flutter.dev/docs)
+* [FastAPI Docs](https://fastapi.tiangolo.com/)
+* [Supabase Docs](https://supabase.com/docs)
+* [Google AI Docs](https://ai.google.dev/)
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
@@ -271,21 +287,22 @@ flutter pub upgrade
 
 ---
 
-## 📄 License
+## License
 
 This project is licensed under the MIT License - see LICENSE file for details.
 
 ---
 
-## 👨‍💼 Author
+## Author
 
 **Anjana** - [GitHub Profile](https://github.com/ANJANA14307)
 
 ---
 
-## 🚀 Deployment
+## Deployment
 
 ### Local Development
+
 ```bash
 # Terminal 1: Backend
 cd backend && uvicorn main:app --reload
@@ -295,8 +312,9 @@ cd ordify_app && flutter run
 ```
 
 ### Production
+
 See [DEPLOYMENT.md](./DEPLOYMENT.md) for cloud deployment guides (AWS, Heroku, Firebase).
 
 ---
 
-**Made with ❤️ for e-commerce sellers**
+**Made with love for e-commerce sellers**
