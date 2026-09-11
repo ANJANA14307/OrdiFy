@@ -35,8 +35,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             fontWeight: FontWeight.w700,
           ),
         ),
-        backgroundColor:
-            success ? const Color(0xFF0E7A4F) : Colors.redAccent,
+        backgroundColor: success ? const Color(0xFF0E7A4F) : Colors.redAccent,
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -63,10 +62,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 20),
           child: CustomScrollView(
             slivers: [
-              SliverFillRemaining(
-                hasScrollBody: false,
+              SliverToBoxAdapter(
                 child: Column(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Padding(
@@ -94,14 +92,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         ],
                       ),
                     ),
+                    const SizedBox(height: 36),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           'Control\nYour Engine.',
-                          style: Theme.of(context)
-                              .textTheme
-                              .displayLarge
+                          style: Theme.of(context).textTheme.displayLarge
                               ?.copyWith(
                                 fontSize: 44,
                                 height: 1.1,
@@ -180,7 +177,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               elevation: 0,
                             ),
                             onPressed: () {
-                              ref.read(authProvider.notifier).signIn(
+                              ref
+                                  .read(authProvider.notifier)
+                                  .signIn(
                                     email: _emailController.text,
                                     password: _passwordController.text,
                                   );
@@ -196,6 +195,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ),
                       ],
                     ),
+                    const SizedBox(height: 28),
                     Align(
                       alignment: Alignment.center,
                       child: Padding(
