@@ -139,6 +139,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
                 const SizedBox(height: 22),
                 OrdifyGlassCard(
+                  padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -150,13 +151,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       Text(
                         'Track your catalog, Instagram connection, and daily operations from one place.',
                         style: GoogleFonts.inter(
-                          color: const Color(0xFFDDEAE4),
+                          color: const Color(0xFFDCE7E2),
                           height: 1.4,
                           fontSize: 13,
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
-                      const SizedBox(height: 22),
+                      const SizedBox(height: 20),
                       Row(
                         children: [
                           Expanded(
@@ -164,7 +165,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               title: 'Products',
                               value: '$_productCount',
                               icon: Icons.inventory_2_rounded,
-                              color: ordifyGreen,
+                              color: const Color(0xFFEFF7F5),
+                              iconColor: Colors.white,
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -173,7 +175,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               title: 'Low Stock',
                               value: '$_lowStockCount',
                               icon: Icons.warning_amber_rounded,
-                              color: ordifyYellow,
+                              color: const Color(0xFFF4F0E7),
+                              iconColor: Colors.white,
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -182,7 +185,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               title: 'Health',
                               value: '$storeHealth%',
                               icon: Icons.favorite_rounded,
-                              color: ordifyBlue,
+                              color: const Color(0xFFEFF4FB),
+                              iconColor: Colors.white,
                             ),
                           ),
                         ],
@@ -190,68 +194,119 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 18),
                 _InstagramCard(
                   connected: _instagramConnected,
                   username: _instagramUsername,
                   onConnect: _connectInstagram,
                 ),
-                const SizedBox(height: 22),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _DashboardNavPill(
-                        label: 'Quick Flow',
-                        isActive: true,
-                        onTap: () {},
+                const SizedBox(height: 20),
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final isWide = constraints.maxWidth >= 760;
+
+                    final buttons = <Widget>[
+                      _ShortcutTile(
+                        icon: Icons.analytics_rounded,
+                        title: 'Analytics',
+                        color: const Color(0xFFE7F3FF),
+                        onTap: () => context.push('/analytics'),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _DashboardNavPill(
-                        label: 'Account Settings',
-                        isActive: false,
-                        onTap: () => context.push('/settings'),
+                      _ShortcutTile(
+                        icon: Icons.receipt_long_rounded,
+                        title: 'Orders',
+                        color: const Color(0xFFE9F9EE),
+                        onTap: () => context.go('/orders'),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Wrap(
-                  spacing: 12,
-                  runSpacing: 12,
-                  children: [
-                    _ShortcutTile(
-                      icon: Icons.analytics_rounded,
-                      title: 'Analytics',
-                      color: const Color(0xFF9DF6FF),
-                      onTap: () => context.push('/analytics'),
-                    ),
-                    _ShortcutTile(
-                      icon: Icons.receipt_long_rounded,
-                      title: 'Orders',
-                      color: ordifyGreen,
-                      onTap: () => context.go('/orders'),
-                    ),
-                    _ShortcutTile(
-                      icon: Icons.inventory_2_rounded,
-                      title: 'Stock',
-                      color: ordifyYellow,
-                      onTap: () => context.go('/inventory'),
-                    ),
-                    _ShortcutTile(
-                      icon: Icons.people_alt_rounded,
-                      title: 'CRM',
-                      color: ordifyBlue,
-                      onTap: () => context.go('/customers'),
-                    ),
-                    _ShortcutTile(
-                      icon: Icons.auto_awesome_rounded,
-                      title: 'AI',
-                      color: const Color(0xFFB788FF),
-                      onTap: () => context.go('/ai-tools'),
-                    ),
-                  ],
+                      _ShortcutTile(
+                        icon: Icons.inventory_2_rounded,
+                        title: 'Stock',
+                        color: const Color(0xFFF5F3EA),
+                        onTap: () => context.go('/inventory'),
+                      ),
+                      _ShortcutTile(
+                        icon: Icons.people_alt_rounded,
+                        title: 'CRM',
+                        color: const Color(0xFFF2EBFF),
+                        onTap: () => context.go('/customers'),
+                      ),
+                      _ShortcutTile(
+                        icon: Icons.auto_awesome_rounded,
+                        title: 'AI',
+                        color: const Color(0xFFE8F5F0),
+                        onTap: () => context.go('/ai-tools'),
+                      ),
+                    ];
+
+                    if (isWide) {
+                      return Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Wrap(
+                              spacing: 12,
+                              runSpacing: 12,
+                              children: buttons,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          SizedBox(
+                            width: 192,
+                            child: _SidebarNav(
+                              items: const [
+                                _SidebarItemData(
+                                  title: 'Quick Flow',
+                                  icon: Icons.flash_on_rounded,
+                                  selected: true,
+                                ),
+                                _SidebarItemData(
+                                  title: 'Settings',
+                                  icon: Icons.settings_rounded,
+                                  selected: false,
+                                ),
+                              ],
+                              onTap: (title) {
+                                if (title == 'Settings') {
+                                  context.push('/settings');
+                                }
+                              },
+                            ),
+                          ),
+                        ],
+                      );
+                    }
+
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Wrap(
+                          spacing: 12,
+                          runSpacing: 12,
+                          children: buttons,
+                        ),
+                        const SizedBox(height: 12),
+                        _SidebarNav(
+                          items: const [
+                            _SidebarItemData(
+                              title: 'Quick Flow',
+                              icon: Icons.flash_on_rounded,
+                              selected: true,
+                            ),
+                            _SidebarItemData(
+                              title: 'Settings',
+                              icon: Icons.settings_rounded,
+                              selected: false,
+                            ),
+                          ],
+                          onTap: (title) {
+                            if (title == 'Settings') {
+                              context.push('/settings');
+                            }
+                          },
+                        ),
+                      ],
+                    );
+                  },
                 ),
               ],
             ),
@@ -276,22 +331,19 @@ class _GlitterHeader extends StatelessWidget {
     return Row(
       children: [
         Container(
-          height: 54,
-          width: 54,
+          height: 52,
+          width: 52,
           decoration: BoxDecoration(
-            color: ordifyGreen,
-            borderRadius: BorderRadius.circular(18),
-            boxShadow: [
-              BoxShadow(
-                color: ordifyGreen.withOpacity(0.42),
-                blurRadius: 24,
-              ),
-            ],
+            color: Colors.white.withOpacity(0.07),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: Colors.white.withOpacity(0.08),
+            ),
           ),
           child: const Icon(
             Icons.dashboard_rounded,
-            color: Colors.black,
-            size: 28,
+            color: Colors.white,
+            size: 24,
           ),
         ),
         const SizedBox(width: 14),
@@ -304,6 +356,7 @@ class _GlitterHeader extends StatelessWidget {
                 style: TextStyle(
                   color: Color(0xFFE8FFF2),
                   fontWeight: FontWeight.w700,
+                  fontSize: 12,
                 ),
               ),
               _GlowText(
@@ -313,24 +366,35 @@ class _GlitterHeader extends StatelessWidget {
             ],
           ),
         ),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            color: ordifyGreen.withOpacity(0.16),
-            borderRadius: BorderRadius.circular(999),
-            border: Border.all(
-              color: ordifyGreen.withOpacity(0.35),
+        if (!isLoading)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.03),
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.07),
+              ),
+            ),
+            child: Text(
+              'LIVE',
+              style: GoogleFonts.inter(
+                color: Colors.white70,
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.8,
+              ),
+            ),
+          )
+        else
+          const SizedBox(
+            height: 20,
+            width: 20,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: Colors.white70,
             ),
           ),
-          child: Text(
-            isLoading ? 'SYNCING' : 'LIVE',
-            style: GoogleFonts.inter(
-              color: ordifyGreen,
-              fontSize: 11,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-        ),
         const SizedBox(width: 6),
         IconButton(
           onPressed: isLoading ? null : onRefresh,
@@ -373,16 +437,19 @@ class _InstagramCard extends StatelessWidget {
       child: Row(
         children: [
           Container(
-            height: 58,
-            width: 58,
+            height: 54,
+            width: 54,
             decoration: BoxDecoration(
-              color: color.withOpacity(0.18),
-              borderRadius: BorderRadius.circular(20),
+              color: Colors.white.withOpacity(0.04),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.06),
+              ),
             ),
             child: Icon(
               connected ? Icons.verified_rounded : Icons.link_rounded,
               color: color,
-              size: 30,
+              size: 24,
             ),
           ),
           const SizedBox(width: 14),
@@ -392,16 +459,16 @@ class _InstagramCard extends StatelessWidget {
               children: [
                 _GlowText(
                   connected ? 'Instagram Connected' : 'Instagram Not Connected',
-                  fontSize: 16,
+                  fontSize: 15,
                   soft: true,
                 ),
-                const SizedBox(height: 5),
+                const SizedBox(height: 4),
                 Text(
                   username,
                   style: GoogleFonts.inter(
                     color: const Color(0xFFE8FFF2),
                     fontSize: 12,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ],
@@ -412,8 +479,8 @@ class _InstagramCard extends StatelessWidget {
             child: Text(
               connected ? 'Refresh' : 'Connect',
               style: GoogleFonts.inter(
-                color: ordifyGreen,
-                fontWeight: FontWeight.w900,
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
               ),
             ),
           ),
@@ -423,44 +490,92 @@ class _InstagramCard extends StatelessWidget {
   }
 }
 
-class _DashboardNavPill extends StatelessWidget {
-  const _DashboardNavPill({
-    required this.label,
-    required this.isActive,
+class _SidebarItemData {
+  const _SidebarItemData({
+    required this.title,
+    required this.icon,
+    required this.selected,
+  });
+
+  final String title;
+  final IconData icon;
+  final bool selected;
+}
+
+class _SidebarNav extends StatelessWidget {
+  const _SidebarNav({
+    required this.items,
     required this.onTap,
   });
 
-  final String label;
-  final bool isActive;
-  final VoidCallback onTap;
+  final List<_SidebarItemData> items;
+  final ValueChanged<String> onTap;
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(18),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        decoration: BoxDecoration(
-          color: isActive
-              ? ordifyGreen.withOpacity(0.12)
-              : Colors.white.withOpacity(0.02),
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-            color: isActive
-                ? ordifyGreen.withOpacity(0.32)
-                : Colors.white.withOpacity(0.08),
+    return OrdifyGlassCard(
+      padding: const EdgeInsets.all(14),
+      radius: 22,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Quick Menu',
+            style: GoogleFonts.inter(
+              color: Colors.white70,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.8,
+            ),
           ),
-        ),
-        child: Text(
-          label,
-          textAlign: TextAlign.center,
-          style: GoogleFonts.inter(
-            color: isActive ? ordifyGreen : Colors.white70,
-            fontSize: 12,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
+          const SizedBox(height: 12),
+          ...items.map((item) {
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(14),
+                onTap: () => onTap(item.title),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
+                  decoration: BoxDecoration(
+                    color: item.selected
+                        ? Colors.white.withOpacity(0.05)
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: item.selected
+                          ? Colors.white.withOpacity(0.08)
+                          : Colors.transparent,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        item.icon,
+                        size: 18,
+                        color: item.selected ? Colors.white : Colors.white60,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          item.title,
+                          style: GoogleFonts.inter(
+                            color: item.selected ? Colors.white : Colors.white60,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }),
+        ],
       ),
     );
   }
@@ -493,16 +608,19 @@ class _ShortcutTile extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                height: 44,
-                width: 44,
+                height: 42,
+                width: 42,
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.18),
-                  borderRadius: BorderRadius.circular(14),
+                  color: Colors.white.withOpacity(0.04),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.06),
+                  ),
                 ),
                 child: Icon(
                   icon,
-                  color: color,
-                  size: 22,
+                  color: color.withOpacity(0.9),
+                  size: 20,
                 ),
               ),
               const SizedBox(height: 12),
@@ -511,7 +629,7 @@ class _ShortcutTile extends StatelessWidget {
                 style: GoogleFonts.inter(
                   color: Colors.white,
                   fontSize: 14,
-                  fontWeight: FontWeight.w800,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
             ],
@@ -542,12 +660,6 @@ class _GlowText extends StatelessWidget {
         color: const Color(0xFFF1F6F4),
         fontSize: fontSize,
         fontWeight: FontWeight.w800,
-        shadows: [
-          Shadow(
-            color: ordifyGreen.withOpacity(0.04),
-            blurRadius: 6,
-          ),
-        ],
       ),
     );
   }

@@ -14,7 +14,11 @@ class Settings(BaseSettings):
     SUPABASE_SECRET_KEY: str
     SUPABASE_ANON_KEY: str | None = None
 
-    BACKEND_CORS_ORIGINS: str = "*"
+    BACKEND_CORS_ORIGINS: str = (
+        "http://localhost:8080,http://127.0.0.1:8080,"
+        "http://localhost:8000,http://127.0.0.1:8000,"
+        "https://localhost:8080,https://127.0.0.1:8080"
+    )
 
     INSTAGRAM_ACCESS_TOKEN: str | None = None
     INSTAGRAM_BUSINESS_ACCOUNT_ID: str | None = None

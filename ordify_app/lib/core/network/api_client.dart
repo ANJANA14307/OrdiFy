@@ -8,7 +8,7 @@ class ApiClient {
 
   static const String _baseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'http://10.46.172.34:8000',
+    defaultValue: 'http://127.0.0.1:8000',
   );
 
   ApiClient() {

@@ -51,13 +51,6 @@ class OrdiFyApp extends ConsumerWidget {
           onSurface: Color(0xFFEAF5F1),
           onPrimary: Color(0xFF09140F),
         ),
-        pageTransitionsTheme: const PageTransitionsTheme(
-          builders: {
-            TargetPlatform.android: CupertinoPageTransitionsBuilder(),
-            TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
-            TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
-          },
-        ),
         textTheme: GoogleFonts.interTextTheme(
           ThemeData.dark().textTheme,
         ).copyWith(
@@ -73,7 +66,7 @@ class OrdiFyApp extends ConsumerWidget {
           foregroundColor: Color(0xFFF1F7F4),
           elevation: 0,
         ),
-        cardTheme: CardTheme(
+        cardTheme: CardThemeData(
           color: const Color(0xFF121B18),
           elevation: 0,
           margin: EdgeInsets.zero,
