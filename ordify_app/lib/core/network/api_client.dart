@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart' as dio;
+import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'error_handler.dart';
@@ -8,7 +9,7 @@ class ApiClient {
 
   static const String _baseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'http://192.168.1.41:8000',
+    defaultValue: 'http://localhost:8000',
   );
 
   ApiClient() {
@@ -49,10 +50,7 @@ class ApiClient {
     String path, {
     Map<String, dynamic>? queryParameters,
   }) {
-    return dioClient.get(
-      path,
-      queryParameters: queryParameters,
-    );
+    return dioClient.get(path, queryParameters: queryParameters);
   }
 
   Future<dio.Response<dynamic>> post(
@@ -60,59 +58,32 @@ class ApiClient {
     dynamic data,
     Map<String, dynamic>? queryParameters,
   }) {
-    return dioClient.post(
-      path,
-      data: data,
-      queryParameters: queryParameters,
-    );
+    return dioClient.post(path, data: data, queryParameters: queryParameters);
   }
 
-  Future<dio.Response<dynamic>> patch(
-    String path, {
-    dynamic data,
-  }) {
-    return dioClient.patch(
-      path,
-      data: data,
-    );
+  Future<dio.Response<dynamic>> patch(String path, {dynamic data}) {
+    return dioClient.patch(path, data: data);
   }
 
-  Future<dio.Response<dynamic>> put(
-    String path, {
-    dynamic data,
-  }) {
-    return dioClient.put(
-      path,
-      data: data,
-    );
+  Future<dio.Response<dynamic>> put(String path, {dynamic data}) {
+    return dioClient.put(path, data: data);
   }
 
-  Future<dio.Response<dynamic>> delete(
-    String path, {
-    dynamic data,
-  }) {
-    return dioClient.delete(
-      path,
-      data: data,
-    );
+  Future<dio.Response<dynamic>> delete(String path, {dynamic data}) {
+    return dioClient.delete(path, data: data);
   }
 
-  Future<dio.Response<dynamic>> uploadProductImage(String filePath) async {
-    final fileName = filePath.split(RegExp(r'[\\/]')).last;
+  Future<dio.Response<dynamic>> uploadProductImage(XFile image) async {
+    final fileBytes = await image.readAsBytes();
 
     final formData = dio.FormData.fromMap({
-      'file': await dio.MultipartFile.fromFile(
-        filePath,
-        filename: fileName,
-      ),
+      'file': dio.MultipartFile.fromBytes(fileBytes, filename: image.name),
     });
 
     return dioClient.post(
       '/products/upload-image',
       data: formData,
-      options: dio.Options(
-        contentType: 'multipart/form-data',
-      ),
+      options: dio.Options(contentType: 'multipart/form-data'),
     );
   }
 }

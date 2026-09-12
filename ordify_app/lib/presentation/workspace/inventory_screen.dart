@@ -222,7 +222,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
       });
       refreshSheet?.call();
 
-      final response = await apiClient.uploadProductImage(pickedImage.path);
+      final response = await apiClient.uploadProductImage(pickedImage);
 
       if (!mounted) return;
 
@@ -333,10 +333,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
 
     try {
       if (_isEditing) {
-        await apiClient.patch(
-          '/products/$_editingProductId',
-          data: data,
-        );
+        await apiClient.patch('/products/$_editingProductId', data: data);
 
         if (!mounted) return;
 
@@ -346,10 +343,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
           _message = 'Product updated successfully';
         });
       } else {
-        await apiClient.post(
-          '/products',
-          data: data,
-        );
+        await apiClient.post('/products', data: data);
 
         if (!mounted) return;
 
@@ -368,8 +362,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
       if (!mounted) return;
 
       setState(() {
-        _message =
-            _isEditing ? 'Product update failed' : 'Product creation failed';
+        _message = _isEditing
+            ? 'Product update failed'
+            : 'Product creation failed';
       });
       refreshSheet?.call();
     } finally {
@@ -545,17 +540,15 @@ class _InventoryScreenState extends State<InventoryScreen> {
                     onAdd: () => _openProductSheet(),
                   ),
                   const SizedBox(height: 18),
-                 _OverviewCard(
-                productCount: _products.length,
-                lowStockCount: _lowStockCount,
-                totalUnits: _totalStockUnits,
-                insight: _inventoryInsight(),
-),
-                  
-                  const SizedBox(height: 14),
-                  _InventoryValueCard(
-                    totalValue: _currency(_inventoryValue),
+                  _OverviewCard(
+                    productCount: _products.length,
+                    lowStockCount: _lowStockCount,
+                    totalUnits: _totalStockUnits,
+                    insight: _inventoryInsight(),
                   ),
+
+                  const SizedBox(height: 14),
+                  _InventoryValueCard(totalValue: _currency(_inventoryValue)),
                   const SizedBox(height: 22),
                   _QuickActions(
                     showOnlyLowStock: _showOnlyLowStock,
@@ -643,11 +636,7 @@ class _GreenBackground extends StatelessWidget {
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [
-                Color(0xFF050A08),
-                Color(0xFF08120F),
-                Color(0xFF071B13),
-              ],
+              colors: [Color(0xFF050A08), Color(0xFF08120F), Color(0xFF071B13)],
             ),
           ),
         ),
@@ -676,9 +665,7 @@ class _GreenBackground extends StatelessWidget {
           ),
         ),
         Positioned.fill(
-          child: Container(
-            color: Colors.black.withValues(alpha: 0.12),
-          ),
+          child: Container(color: Colors.black.withValues(alpha: 0.12)),
         ),
       ],
     );
@@ -689,10 +676,7 @@ class _BlurCircle extends StatelessWidget {
   final double size;
   final Color color;
 
-  const _BlurCircle({
-    required this.size,
-    required this.color,
-  });
+  const _BlurCircle({required this.size, required this.color});
 
   @override
   Widget build(BuildContext context) {
@@ -701,10 +685,7 @@ class _BlurCircle extends StatelessWidget {
       child: Container(
         height: size,
         width: size,
-        decoration: BoxDecoration(
-          color: color,
-          shape: BoxShape.circle,
-        ),
+        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
       ),
     );
   }
@@ -732,9 +713,7 @@ class _GlassCard extends StatelessWidget {
           decoration: BoxDecoration(
             color: const Color(0xFF15211D).withValues(alpha: 0.78),
             borderRadius: BorderRadius.circular(radius),
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.08),
-            ),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.25),
@@ -754,10 +733,7 @@ class _TopGreeting extends StatelessWidget {
   final int storeHealthScore;
   final VoidCallback onAdd;
 
-  const _TopGreeting({
-    required this.storeHealthScore,
-    required this.onAdd,
-  });
+  const _TopGreeting({required this.storeHealthScore, required this.onAdd});
 
   @override
   Widget build(BuildContext context) {
@@ -831,9 +807,7 @@ class _TopGreeting extends StatelessWidget {
 class _HealthRing extends StatelessWidget {
   final int score;
 
-  const _HealthRing({
-    required this.score,
-  });
+  const _HealthRing({required this.score});
 
   @override
   Widget build(BuildContext context) {
@@ -945,10 +919,7 @@ class _StatusPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 11,
-        vertical: 8,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.07),
         borderRadius: BorderRadius.circular(16),
@@ -956,11 +927,7 @@ class _StatusPill extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            icon,
-            color: color,
-            size: 14,
-          ),
+          Icon(icon, color: color, size: 14),
           const SizedBox(width: 6),
           Text(
             label,
@@ -979,9 +946,7 @@ class _StatusPill extends StatelessWidget {
 class _InventoryValueCard extends StatelessWidget {
   final String totalValue;
 
-  const _InventoryValueCard({
-    required this.totalValue,
-  });
+  const _InventoryValueCard({required this.totalValue});
 
   @override
   Widget build(BuildContext context) {
@@ -1131,9 +1096,7 @@ class _ActionTile extends StatelessWidget {
             decoration: BoxDecoration(
               color: const Color(0xFF15211D).withValues(alpha: 0.76),
               borderRadius: BorderRadius.circular(22),
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.08),
-              ),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
             ),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -1145,11 +1108,7 @@ class _ActionTile extends StatelessWidget {
                     color: const Color(0xFF35E58F).withValues(alpha: 0.16),
                     borderRadius: BorderRadius.circular(13),
                   ),
-                  child: Icon(
-                    icon,
-                    color: const Color(0xFF35E58F),
-                    size: 20,
-                  ),
+                  child: Icon(icon, color: const Color(0xFF35E58F), size: 20),
                 ),
                 const SizedBox(height: 8),
                 Text(
@@ -1175,9 +1134,7 @@ class _ActionTile extends StatelessWidget {
 class _GreenSearchBar extends StatelessWidget {
   final TextEditingController controller;
 
-  const _GreenSearchBar({
-    required this.controller,
-  });
+  const _GreenSearchBar({required this.controller});
 
   @override
   Widget build(BuildContext context) {
@@ -1214,9 +1171,7 @@ class _GreenSearchBar extends StatelessWidget {
 class _MessageCard extends StatelessWidget {
   final String message;
 
-  const _MessageCard({
-    required this.message,
-  });
+  const _MessageCard({required this.message});
 
   @override
   Widget build(BuildContext context) {
@@ -1273,10 +1228,7 @@ class _CatalogHeader extends StatelessWidget {
         const Spacer(),
         IconButton(
           onPressed: onRefresh,
-          icon: const Icon(
-            Icons.refresh_rounded,
-            color: Color(0xFF35E58F),
-          ),
+          icon: const Icon(Icons.refresh_rounded, color: Color(0xFF35E58F)),
         ),
       ],
     );
@@ -1522,9 +1474,7 @@ class _EmptyCatalog extends StatelessWidget {
             ),
             child: Text(
               showOnlyLowStock ? 'Show All Products' : 'Add Product',
-              style: GoogleFonts.inter(
-                fontWeight: FontWeight.w900,
-              ),
+              style: GoogleFonts.inter(fontWeight: FontWeight.w900),
             ),
           ),
         ],
@@ -1588,9 +1538,7 @@ class _ProductSheet extends StatelessWidget {
             decoration: BoxDecoration(
               color: const Color(0xFF101A16).withValues(alpha: 0.96),
               borderRadius: BorderRadius.circular(34),
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.10),
-              ),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
             ),
             child: SingleChildScrollView(
               child: Column(
@@ -1744,10 +1692,7 @@ class _SheetImageBox extends StatelessWidget {
   final String? imageUrl;
   final bool isUploading;
 
-  const _SheetImageBox({
-    required this.imageUrl,
-    required this.isUploading,
-  });
+  const _SheetImageBox({required this.imageUrl, required this.isUploading});
 
   @override
   Widget build(BuildContext context) {
@@ -1758,25 +1703,21 @@ class _SheetImageBox extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(26),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.08),
-        ),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
       ),
       child: isUploading
           ? const Center(
-              child: CircularProgressIndicator(
-                color: Color(0xFF35E58F),
-              ),
+              child: CircularProgressIndicator(color: Color(0xFF35E58F)),
             )
           : imageUrl != null && imageUrl!.isNotEmpty
-              ? Image.network(
-                  imageUrl!,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) {
-                    return const _SheetImageFallback();
-                  },
-                )
-              : const _SheetImageFallback(),
+          ? Image.network(
+              imageUrl!,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) {
+                return const _SheetImageFallback();
+              },
+            )
+          : const _SheetImageFallback(),
     );
   }
 }
@@ -1815,12 +1756,8 @@ class _SheetButton extends StatelessWidget {
       label: Text(label),
       style: OutlinedButton.styleFrom(
         foregroundColor: const Color(0xFF35E58F),
-        side: BorderSide(
-          color: Colors.white.withValues(alpha: 0.12),
-        ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
+        side: BorderSide(color: Colors.white.withValues(alpha: 0.12)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       ),
     );
   }
