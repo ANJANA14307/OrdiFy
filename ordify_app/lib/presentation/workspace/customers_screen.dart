@@ -131,8 +131,9 @@ class _CustomersScreenState extends State<CustomersScreen> {
   }
 
   Future<void> _openCustomerSheet({dynamic customer}) async {
-    final customerMap =
-        customer is Map ? Map<String, dynamic>.from(customer) : null;
+    final customerMap = customer is Map
+        ? Map<String, dynamic>.from(customer)
+        : null;
 
     final isEditing = customerMap != null;
 
@@ -158,9 +159,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
       isScrollControlled: true,
       backgroundColor: const Color(0xFF0B1510),
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(32),
-        ),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
       ),
       builder: (sheetContext) {
         return StatefulBuilder(
@@ -172,9 +171,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
                     color: const Color(0xFFE8FFF2),
                     fontWeight: FontWeight.w700,
                   ),
-                  hintStyle: GoogleFonts.inter(
-                    color: Colors.white30,
-                  ),
+                  hintStyle: GoogleFonts.inter(color: Colors.white30),
                   filled: true,
                   fillColor: Colors.white.withOpacity(0.06),
                   enabledBorder: OutlineInputBorder(
@@ -222,10 +219,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
                           fontSize: 24,
                           fontWeight: FontWeight.w900,
                           shadows: const [
-                            Shadow(
-                              color: Color(0xFFFFC8C8),
-                              blurRadius: 8,
-                            ),
+                            Shadow(color: Color(0xFFFFC8C8), blurRadius: 8),
                           ],
                         ),
                       ),
@@ -424,6 +418,8 @@ class _CustomersScreenState extends State<CustomersScreen> {
     phoneController.dispose();
 
     if (instagramUsername.isEmpty) {
+      if (!mounted) return;
+
       setState(() {
         _message = 'Instagram username is required';
       });
@@ -455,6 +451,8 @@ class _CustomersScreenState extends State<CustomersScreen> {
     required String email,
     required String phone,
   }) async {
+    if (!mounted) return;
+
     setState(() {
       _isSaving = true;
       _message = null;
@@ -503,6 +501,8 @@ class _CustomersScreenState extends State<CustomersScreen> {
     required String phone,
     required bool isVip,
   }) async {
+    if (!mounted) return;
+
     setState(() {
       _isSaving = true;
       _message = null;
@@ -557,7 +557,8 @@ class _CustomersScreenState extends State<CustomersScreen> {
       return;
     }
 
-    final customerName = customerMap['display_name']?.toString() ??
+    final customerName =
+        customerMap['display_name']?.toString() ??
         customerMap['instagram_username']?.toString() ??
         'this customer';
 
@@ -683,9 +684,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
             : const Icon(Icons.person_add_alt_1_rounded),
         label: Text(
           _isSaving ? 'Working...' : 'Customer',
-          style: GoogleFonts.inter(
-            fontWeight: FontWeight.w900,
-          ),
+          style: GoogleFonts.inter(fontWeight: FontWeight.w900),
         ),
       ),
       body: Container(
@@ -693,20 +692,14 @@ class _CustomersScreenState extends State<CustomersScreen> {
           gradient: RadialGradient(
             center: Alignment.topRight,
             radius: 1.25,
-            colors: [
-              Color(0xFF16C76A),
-              Color(0xFF0A2418),
-              Color(0xFF050807),
-            ],
+            colors: [Color(0xFF16C76A), Color(0xFF0A2418), Color(0xFF050807)],
             stops: [0.0, 0.36, 1.0],
           ),
         ),
         child: SafeArea(
           child: _isLoading && _customers.isEmpty
               ? const Center(
-                  child: CircularProgressIndicator(
-                    color: Color(0xFF34F087),
-                  ),
+                  child: CircularProgressIndicator(color: Color(0xFF34F087)),
                 )
               : RefreshIndicator(
                   color: const Color(0xFF34F087),
@@ -746,18 +739,13 @@ class _CustomersScreenState extends State<CustomersScreen> {
                           fontSize: 24,
                           fontWeight: FontWeight.w900,
                           shadows: [
-                            Shadow(
-                              color: Color(0xFFFFD6D6),
-                              blurRadius: 12,
-                            ),
+                            Shadow(color: Color(0xFFFFD6D6), blurRadius: 12),
                           ],
                         ),
                       ),
                       const SizedBox(height: 14),
                       if (visibleCustomers.isEmpty)
-                        _EmptyState(
-                          hasSearch: _searchText.trim().isNotEmpty,
-                        )
+                        _EmptyState(hasSearch: _searchText.trim().isNotEmpty)
                       else
                         ...visibleCustomers.map((customer) {
                           final customerMap = Map<String, dynamic>.from(
@@ -785,10 +773,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
 }
 
 class _TopHeader extends StatelessWidget {
-  const _TopHeader({
-    required this.isLoading,
-    required this.onRefresh,
-  });
+  const _TopHeader({required this.isLoading, required this.onRefresh});
 
   final bool isLoading;
   final VoidCallback onRefresh;
@@ -834,12 +819,7 @@ class _TopHeader extends StatelessWidget {
                   color: Colors.white,
                   fontSize: 27,
                   fontWeight: FontWeight.w900,
-                  shadows: [
-                    Shadow(
-                      color: Color(0xFFFFC8C8),
-                      blurRadius: 9,
-                    ),
-                  ],
+                  shadows: [Shadow(color: Color(0xFFFFC8C8), blurRadius: 9)],
                 ),
               ),
             ],
@@ -856,10 +836,7 @@ class _TopHeader extends StatelessWidget {
                     color: Color(0xFF34F087),
                   ),
                 )
-              : const Icon(
-                  Icons.refresh_rounded,
-                  color: Colors.white,
-                ),
+              : const Icon(Icons.refresh_rounded, color: Colors.white),
         ),
       ],
     );
@@ -891,12 +868,7 @@ class _CommandCard extends StatelessWidget {
               color: Colors.white,
               fontSize: 25,
               fontWeight: FontWeight.w900,
-              shadows: [
-                Shadow(
-                  color: Color(0xFFFFD6D6),
-                  blurRadius: 12,
-                ),
-              ],
+              shadows: [Shadow(color: Color(0xFFFFD6D6), blurRadius: 12)],
             ),
           ),
           const SizedBox(height: 8),
@@ -963,9 +935,7 @@ class _CommandCard extends StatelessWidget {
 }
 
 class _SearchBox extends StatelessWidget {
-  const _SearchBox({
-    required this.onChanged,
-  });
+  const _SearchBox({required this.onChanged});
 
   final ValueChanged<String> onChanged;
 
@@ -981,10 +951,7 @@ class _SearchBox extends StatelessWidget {
         ),
         decoration: InputDecoration(
           border: InputBorder.none,
-          icon: const Icon(
-            Icons.search_rounded,
-            color: Color(0xFF34F087),
-          ),
+          icon: const Icon(Icons.search_rounded, color: Color(0xFF34F087)),
           hintText: 'Search customer, Instagram, email or phone',
           hintStyle: GoogleFonts.inter(
             color: const Color(0xFFE8FFF2).withOpacity(0.70),
@@ -998,9 +965,7 @@ class _SearchBox extends StatelessWidget {
 }
 
 class _MessageBox extends StatelessWidget {
-  const _MessageBox({
-    required this.message,
-  });
+  const _MessageBox({required this.message});
 
   final String message;
 
@@ -1104,10 +1069,7 @@ class _CustomerCard extends StatelessWidget {
                           fontSize: 17,
                           fontWeight: FontWeight.w900,
                           shadows: const [
-                            Shadow(
-                              color: Color(0xFFFFC8C8),
-                              blurRadius: 8,
-                            ),
+                            Shadow(color: Color(0xFFFFC8C8), blurRadius: 8),
                           ],
                         ),
                       ),
@@ -1143,90 +1105,99 @@ class _CustomerCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: _MiniInfo(
-                    title: 'Spent',
-                    value: totalSpent,
-                  ),
+                  child: _MiniInfo(title: 'Spent', value: totalSpent),
                 ),
               ],
             ),
             if (email.isNotEmpty || phone.isNotEmpty) ...[
               const SizedBox(height: 12),
               if (email.isNotEmpty)
-                _ContactRow(
-                  icon: Icons.email_rounded,
-                  text: email,
-                ),
+                _ContactRow(icon: Icons.email_rounded, text: email),
               if (phone.isNotEmpty) ...[
                 const SizedBox(height: 8),
-                _ContactRow(
-                  icon: Icons.phone_rounded,
-                  text: phone,
-                ),
+                _ContactRow(icon: Icons.phone_rounded, text: phone),
               ],
             ],
             const SizedBox(height: 14),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: isSaving ? null : onEdit,
-                    icon: const Icon(Icons.edit_rounded, size: 18),
-                    label: Text(
-                      'Edit',
-                      style: GoogleFonts.inter(
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFF34F087),
-                      side: BorderSide(
-                        color: Colors.white.withOpacity(0.22),
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final isCompact = constraints.maxWidth < 360;
+
+                final editButton = OutlinedButton.icon(
+                  onPressed: isSaving ? null : onEdit,
+                  icon: const Icon(Icons.edit_rounded, size: 18),
+                  label: Text(
+                    'Edit',
+                    style: GoogleFonts.inter(fontWeight: FontWeight.w900),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF34F087),
+                    side: BorderSide(color: Colors.white.withOpacity(0.22)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
                     ),
                   ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: isSaving ? null : onVip,
-                    icon: Icon(
-                      isVip ? Icons.star_border_rounded : Icons.star_rounded,
-                      size: 18,
+                );
+
+                final vipButton = OutlinedButton.icon(
+                  onPressed: isSaving ? null : onVip,
+                  icon: Icon(
+                    isVip ? Icons.star_border_rounded : Icons.star_rounded,
+                    size: 18,
+                  ),
+                  label: Text(
+                    isVip ? 'Regular' : 'VIP',
+                    style: GoogleFonts.inter(fontWeight: FontWeight.w900),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: isVip
+                        ? const Color(0xFFE8FFF2)
+                        : const Color(0xFFFFC857),
+                    side: BorderSide(
+                      color: isVip
+                          ? Colors.white.withOpacity(0.22)
+                          : const Color(0xFFFFC857).withOpacity(0.38),
                     ),
-                    label: Text(
-                      isVip ? 'Regular' : 'VIP',
-                      style: GoogleFonts.inter(
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: isVip
-                          ? const Color(0xFFE8FFF2)
-                          : const Color(0xFFFFC857),
-                      side: BorderSide(
-                        color: isVip
-                            ? Colors.white.withOpacity(0.22)
-                            : const Color(0xFFFFC857).withOpacity(0.38),
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
                     ),
                   ),
-                ),
-                const SizedBox(width: 10),
-                IconButton(
+                );
+
+                final deleteButton = IconButton(
                   onPressed: isSaving ? null : onDelete,
+                  tooltip: 'Delete customer',
                   icon: const Icon(
                     Icons.delete_outline_rounded,
                     color: Colors.redAccent,
                   ),
-                ),
-              ],
+                );
+
+                if (isCompact) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      editButton,
+                      const SizedBox(height: 8),
+                      vipButton,
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: deleteButton,
+                      ),
+                    ],
+                  );
+                }
+
+                return Row(
+                  children: [
+                    Expanded(child: editButton),
+                    const SizedBox(width: 10),
+                    Expanded(child: vipButton),
+                    const SizedBox(width: 10),
+                    deleteButton,
+                  ],
+                );
+              },
             ),
           ],
         ),
@@ -1236,10 +1207,7 @@ class _CustomerCard extends StatelessWidget {
 }
 
 class _MiniInfo extends StatelessWidget {
-  const _MiniInfo({
-    required this.title,
-    required this.value,
-  });
+  const _MiniInfo({required this.title, required this.value});
 
   final String title;
   final String value;
@@ -1251,9 +1219,7 @@ class _MiniInfo extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.06),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.12),
-        ),
+        border: Border.all(color: Colors.white.withOpacity(0.12)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1285,10 +1251,7 @@ class _MiniInfo extends StatelessWidget {
 }
 
 class _ContactRow extends StatelessWidget {
-  const _ContactRow({
-    required this.icon,
-    required this.text,
-  });
+  const _ContactRow({required this.icon, required this.text});
 
   final IconData icon;
   final String text;
@@ -1297,11 +1260,7 @@ class _ContactRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(
-          icon,
-          color: const Color(0xFFE8FFF2),
-          size: 16,
-        ),
+        Icon(icon, color: const Color(0xFFE8FFF2), size: 16),
         const SizedBox(width: 8),
         Expanded(
           child: Text(
@@ -1320,10 +1279,7 @@ class _ContactRow extends StatelessWidget {
 }
 
 class _StatusPill extends StatelessWidget {
-  const _StatusPill({
-    required this.text,
-    required this.color,
-  });
+  const _StatusPill({required this.text, required this.color});
 
   final String text;
   final Color color;
@@ -1350,9 +1306,7 @@ class _StatusPill extends StatelessWidget {
 }
 
 class _EmptyState extends StatelessWidget {
-  const _EmptyState({
-    required this.hasSearch,
-  });
+  const _EmptyState({required this.hasSearch});
 
   final bool hasSearch;
 
