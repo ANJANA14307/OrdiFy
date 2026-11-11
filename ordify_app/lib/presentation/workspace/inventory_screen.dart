@@ -5,6 +5,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../core/network/api_client.dart';
+import '../../features/product_codes/variants_list_screen.dart';
+import '../../features/shared_catalog/catalog_search_screen.dart';
 
 class InventoryScreen extends StatefulWidget {
   const InventoryScreen({super.key});
@@ -458,8 +460,60 @@ class _InventoryScreenState extends State<InventoryScreen> {
     }
   }
 
-  void _openProductSheet({dynamic product}) {
+  Future<void> _openProductSheet({dynamic product}) async {
     if (product == null) {
+      final choice = await showModalBottomSheet<String>(
+        context: context,
+        backgroundColor: const Color(0xFF101A16),
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        builder: (context) => SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Padding(
+                padding: EdgeInsets.all(18),
+                child: Text(
+                  'Add a product',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              ListTile(
+                leading: const Icon(Icons.search_rounded),
+                title: const Text(
+                  'Find in OrdiFy catalog',
+                  style: TextStyle(color: Colors.white),
+                ),
+                subtitle: const Text(
+                  'Use shared product details and set your own price and stock.',
+                ),
+                onTap: () => Navigator.pop(context, 'catalog'),
+              ),
+              ListTile(
+                leading: const Icon(Icons.add_box_outlined),
+                title: const Text(
+                  'Add new product',
+                  style: TextStyle(color: Colors.white),
+                ),
+                onTap: () => Navigator.pop(context, 'new'),
+              ),
+              const SizedBox(height: 10),
+            ],
+          ),
+        ),
+      );
+      if (!mounted || choice == null) return;
+      if (choice == 'catalog') {
+        await Navigator.of(context).push(
+          MaterialPageRoute<void>(builder: (_) => const CatalogSearchScreen()),
+        );
+        return;
+      }
       _clearForm();
     } else {
       _fillForm(product);
@@ -495,6 +549,21 @@ class _InventoryScreenState extends State<InventoryScreen> {
                 Navigator.pop(sheetContext);
                 _clearForm();
               },
+              onManageVariants: _isEditing && _editingProductId != null
+                  ? () {
+                      final productId = _editingProductId!;
+                      final productName = _nameController.text.trim();
+                      Navigator.pop(sheetContext);
+                      Navigator.of(this.context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => VariantsListScreen(
+                            productId: productId,
+                            productName: productName,
+                          ),
+                        ),
+                      );
+                    }
+                  : null,
               onSave: () => _saveProduct(
                 refreshSheet: () => setSheetState(() {}),
                 closeSheet: () {
@@ -1500,6 +1569,7 @@ class _ProductSheet extends StatelessWidget {
   final VoidCallback onCamera;
   final VoidCallback onSave;
   final VoidCallback onCancel;
+  final VoidCallback? onManageVariants;
 
   const _ProductSheet({
     required this.isEditing,
@@ -1516,6 +1586,7 @@ class _ProductSheet extends StatelessWidget {
     required this.onCamera,
     required this.onSave,
     required this.onCancel,
+    required this.onManageVariants,
   });
 
   @override
@@ -1647,6 +1718,26 @@ class _ProductSheet extends StatelessWidget {
                     hint: 'Optional product details',
                     maxLines: 3,
                   ),
+                  if (onManageVariants != null) ...[
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: onManageVariants,
+                        icon: const Icon(Icons.sell_outlined),
+                        label: const Text('Variants and Codes'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: const Color(0xFF35E58F),
+                          side: BorderSide(
+                            color: const Color(
+                              0xFF35E58F,
+                            ).withValues(alpha: 0.5),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                        ),
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 18),
                   SizedBox(
                     width: double.infinity,

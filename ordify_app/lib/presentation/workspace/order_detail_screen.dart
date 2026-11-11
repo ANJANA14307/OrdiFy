@@ -1,15 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ordify_app/core/network/api_client.dart';
+import 'package:ordify_app/features/delivery_fees/order_price_breakdown.dart';
+import 'package:ordify_app/features/returns/returns_api.dart';
 
 import 'ordify_workspace_widgets.dart';
 
 class OrderDetailScreen extends StatefulWidget {
-  const OrderDetailScreen({
-    super.key,
-    this.orderId,
-    this.order,
-  });
+  const OrderDetailScreen({super.key, this.orderId, this.order});
 
   final String? orderId;
   final dynamic order;
@@ -27,6 +25,10 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   List<dynamic> items = [];
   List<dynamic> payments = [];
   List<dynamic> invoices = [];
+  bool returnEligible = false;
+  bool returnEligibilityLoading = false;
+  String? returnEligibilityError;
+  String? existingReturnId;
 
   String? get resolvedOrderId {
     if (widget.orderId != null && widget.orderId!.isNotEmpty) {
@@ -86,6 +88,15 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         invoices = data['invoices'] ?? [];
         isLoading = false;
       });
+      if (order?['status']?.toString() == 'delivered') {
+        await fetchReturnEligibility();
+      } else {
+        setState(() {
+          returnEligible = false;
+          existingReturnId = null;
+          returnEligibilityError = null;
+        });
+      }
     } catch (error) {
       setState(() {
         errorMessage = error.toString();
@@ -94,35 +105,57 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     }
   }
 
+  Future<void> fetchReturnEligibility() async {
+    final id = resolvedOrderId;
+    if (id == null || id.isEmpty) return;
+    setState(() {
+      returnEligibilityLoading = true;
+      returnEligibilityError = null;
+    });
+    try {
+      final result = await returnsApi.getEligibility(id);
+      if (!mounted) return;
+      final existing = result['existing_return'];
+      setState(() {
+        returnEligible = result['eligible'] == true;
+        existingReturnId = existing is Map ? existing['id']?.toString() : null;
+        returnEligibilityLoading = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        returnEligibilityError = error.toString();
+        returnEligibilityLoading = false;
+      });
+    }
+  }
+
   Future<void> updateOrderStatus(String status) async {
     final id = resolvedOrderId;
 
     if (id == null || id.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Order ID not found')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Order ID not found')));
       return;
     }
 
     try {
-      await apiClient.patch(
-        '/orders/$id/status',
-        data: {'status': status},
-      );
+      await apiClient.patch('/orders/$id/status', data: {'status': status});
 
       await fetchOrderDetail();
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Order moved to $status')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Order moved to $status')));
     } catch (error) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.toString())),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
     }
   }
 
@@ -165,58 +198,72 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
 
     await showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       backgroundColor: const Color(0xFF0B1510),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
       ),
       builder: (context) {
-        return Padding(
-          padding: const EdgeInsets.fromLTRB(18, 18, 18, 28),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                height: 4,
-                width: 46,
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.28),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-              ),
-              const SizedBox(height: 18),
-              const Text(
-                'Move Order Stage',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 22,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-              const SizedBox(height: 16),
-              ...statuses.map((status) {
-                return ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: statusColor(status).withOpacity(0.18),
-                    child: Icon(
-                      Icons.circle,
-                      color: statusColor(status),
-                      size: 14,
+        return SafeArea(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.sizeOf(context).height * 0.8,
+            ),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(18, 18, 18, 12),
+              child: Column(
+                children: [
+                  Container(
+                    height: 4,
+                    width: 46,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.28),
+                      borderRadius: BorderRadius.circular(999),
                     ),
                   ),
-                  title: Text(
-                    status.toUpperCase(),
-                    style: const TextStyle(
+                  const SizedBox(height: 18),
+                  const Text(
+                    'Move Order Stage',
+                    style: TextStyle(
                       color: Colors.white,
-                      fontWeight: FontWeight.w800,
+                      fontSize: 22,
+                      fontWeight: FontWeight.w900,
                     ),
                   ),
-                  onTap: () async {
-                    Navigator.pop(context);
-                    await updateOrderStatus(status);
-                  },
-                );
-              }),
-            ],
+                  const SizedBox(height: 16),
+                  Flexible(
+                    child: ListView(
+                      shrinkWrap: true,
+                      children: statuses.map((status) {
+                        return ListTile(
+                          leading: CircleAvatar(
+                            backgroundColor: statusColor(
+                              status,
+                            ).withValues(alpha: 0.18),
+                            child: Icon(
+                              Icons.circle,
+                              color: statusColor(status),
+                              size: 14,
+                            ),
+                          ),
+                          title: Text(
+                            status.toUpperCase(),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          onTap: () async {
+                            Navigator.pop(context);
+                            await updateOrderStatus(status);
+                          },
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         );
       },
@@ -230,7 +277,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     final id = resolvedOrderId;
     final payStatus = paymentStatus();
 
-    final orderNumber = currentOrder?['order_number']?.toString() ??
+    final orderNumber =
+        currentOrder?['order_number']?.toString() ??
         currentOrder?['id']?.toString() ??
         'Order';
 
@@ -245,11 +293,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           gradient: RadialGradient(
             center: Alignment.topRight,
             radius: 1.25,
-            colors: [
-              Color(0xFF16C76A),
-              Color(0xFF0A2418),
-              Color(0xFF050807),
-            ],
+            colors: [Color(0xFF16C76A), Color(0xFF0A2418), Color(0xFF050807)],
             stops: [0.0, 0.36, 1.0],
           ),
         ),
@@ -257,319 +301,358 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           child: isLoading
               ? const Center(child: CircularProgressIndicator())
               : errorMessage != null
-                  ? Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(18),
-                        child: Text(
-                          errorMessage!,
-                          style: const TextStyle(color: Colors.white),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                    )
-                  : currentOrder == null
-                      ? const Center(
-                          child: Text(
-                            'Order not found',
-                            style: TextStyle(color: Colors.white),
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(18),
+                    child: Text(
+                      errorMessage!,
+                      style: const TextStyle(color: Colors.white),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                )
+              : currentOrder == null
+              ? const Center(
+                  child: Text(
+                    'Order not found',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                )
+              : RefreshIndicator(
+                  onRefresh: fetchOrderDetail,
+                  child: ListView(
+                    padding: const EdgeInsets.fromLTRB(18, 18, 18, 30),
+                    children: [
+                      Row(
+                        children: [
+                          IconButton(
+                            onPressed: () => context.pop(),
+                            icon: const Icon(
+                              Icons.arrow_back_rounded,
+                              color: Colors.white,
+                            ),
                           ),
-                        )
-                      : RefreshIndicator(
-                          onRefresh: fetchOrderDetail,
-                          child: ListView(
-                            padding: const EdgeInsets.fromLTRB(18, 18, 18, 30),
-                            children: [
-                              Row(
-                                children: [
-                                  IconButton(
-                                    onPressed: () => context.pop(),
-                                    icon: const Icon(
-                                      Icons.arrow_back_rounded,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  const Expanded(
-                                    child: Text(
-                                      'Order Detail',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 25,
-                                        fontWeight: FontWeight.w900,
-                                        shadows: [
-                                          Shadow(
-                                            color: Color(0xFFFFC8C8),
-                                            blurRadius: 9,
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                  IconButton(
-                                    onPressed: fetchOrderDetail,
-                                    icon: const Icon(
-                                      Icons.refresh_rounded,
-                                      color: Colors.white,
-                                    ),
+                          const SizedBox(width: 8),
+                          const Expanded(
+                            child: Text(
+                              'Order Detail',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 25,
+                                fontWeight: FontWeight.w900,
+                                shadows: [
+                                  Shadow(
+                                    color: Color(0xFFFFC8C8),
+                                    blurRadius: 9,
                                   ),
                                 ],
                               ),
-                              const SizedBox(height: 18),
-                              OrdifyGlassCard(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      orderNumber,
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 26,
-                                        fontWeight: FontWeight.w900,
-                                        shadows: [
-                                          Shadow(
-                                            color: Color(0xFFFFC8C8),
-                                            blurRadius: 9,
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    const SizedBox(height: 10),
-                                    Text(
-                                      '₹$amount • $source',
-                                      style: const TextStyle(
-                                        color: Color(0xFFE8FFF2),
-                                        fontWeight: FontWeight.w800,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 18),
-                                    Row(
-                                      children: [
-                                        _Pill(
-                                          text: status.toUpperCase(),
-                                          color: statusColor(status),
-                                        ),
-                                        const SizedBox(width: 10),
-                                        _Pill(
-                                          text: payStatus.toUpperCase(),
-                                          color: paymentColor(payStatus),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                              OrdifyGlassCard(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text(
-                                      'Quick Actions',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.w900,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 14),
-                                    Row(
-                                      children: [
-                                        Expanded(
-                                          child: _ActionButton(
-                                            icon: Icons.payments_rounded,
-                                            label: 'Payments',
-                                            onTap: id == null
-                                                ? null
-                                                : () async {
-                                                    await context.push(
-                                                      '/orders/$id/payments',
-                                                    );
-                                                    await fetchOrderDetail();
-                                                  },
-                                          ),
-                                        ),
-                                        const SizedBox(width: 10),
-                                        Expanded(
-                                          child: _ActionButton(
-                                            icon: Icons.picture_as_pdf_rounded,
-                                            label: 'Invoice',
-                                            onTap: id == null
-                                                ? null
-                                                : () async {
-                                                    await context.push(
-                                                      '/orders/$id/invoice-share',
-                                                    );
-                                                    await fetchOrderDetail();
-                                                  },
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 10),
-                                    SizedBox(
-                                      width: double.infinity,
-                                      child: OutlinedButton.icon(
-                                        style: OutlinedButton.styleFrom(
-                                          foregroundColor:
-                                              const Color(0xFF34F087),
-                                          side: BorderSide(
-                                            color:
-                                                Colors.white.withOpacity(0.22),
-                                          ),
-                                          padding: const EdgeInsets.symmetric(
-                                            vertical: 14,
-                                          ),
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(18),
-                                          ),
-                                        ),
-                                        onPressed: openStatusSheet,
-                                        icon: const Icon(
-                                          Icons.swap_horiz_rounded,
-                                        ),
-                                        label: const Text(
-                                          'Change Stage',
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.w900,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                              OrdifyGlassCard(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text(
-                                      'Customer',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.w900,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 12),
-                                    if (currentCustomer == null)
-                                      const Text(
-                                        'No customer details',
-                                        style: TextStyle(
-                                          color: Color(0xFFE8FFF2),
-                                        ),
-                                      )
-                                    else ...[
-                                      Text(
-                                        '${currentCustomer['display_name'] ?? currentCustomer['instagram_username'] ?? 'Customer'}',
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.w800,
-                                          fontSize: 16,
-                                        ),
-                                      ),
-                                      if (currentCustomer['instagram_username'] !=
-                                          null)
-                                        Text(
-                                          '@${currentCustomer['instagram_username']}',
-                                          style: const TextStyle(
-                                            color: Color(0xFFE8FFF2),
-                                          ),
-                                        ),
-                                      if (currentCustomer['phone'] != null)
-                                        Text(
-                                          'Phone: ${currentCustomer['phone']}',
-                                          style: const TextStyle(
-                                            color: Color(0xFFE8FFF2),
-                                          ),
-                                        ),
-                                      if (currentCustomer['email'] != null)
-                                        Text(
-                                          'Email: ${currentCustomer['email']}',
-                                          style: const TextStyle(
-                                            color: Color(0xFFE8FFF2),
-                                          ),
-                                        ),
-                                    ],
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                              OrdifyGlassCard(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text(
-                                      'Items',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.w900,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 10),
-                                    if (items.isEmpty)
-                                      const Text(
-                                        'No items found',
-                                        style: TextStyle(
-                                          color: Color(0xFFE8FFF2),
-                                        ),
-                                      )
-                                    else
-                                      ...items.map((item) {
-                                        final itemMap =
-                                            Map<String, dynamic>.from(
-                                          item as Map,
-                                        );
-
-                                        return Container(
-                                          margin:
-                                              const EdgeInsets.only(bottom: 10),
-                                          padding: const EdgeInsets.all(12),
-                                          decoration: BoxDecoration(
-                                            color:
-                                                Colors.white.withOpacity(0.06),
-                                            borderRadius:
-                                                BorderRadius.circular(18),
-                                            border: Border.all(
-                                              color:
-                                                  Colors.white.withOpacity(0.15),
-                                            ),
-                                          ),
-                                          child: Row(
-                                            children: [
-                                              const Icon(
-                                                Icons.inventory_2_rounded,
-                                                color: Color(0xFF34F087),
-                                              ),
-                                              const SizedBox(width: 10),
-                                              Expanded(
-                                                child: Text(
-                                                  'Product: ${itemMap['product_id']}',
-                                                  style: const TextStyle(
-                                                    color: Colors.white,
-                                                    fontWeight: FontWeight.w800,
-                                                  ),
-                                                ),
-                                              ),
-                                              Text(
-                                                'x${itemMap['quantity']}',
-                                                style: const TextStyle(
-                                                  color: Color(0xFFE8FFF2),
-                                                  fontWeight: FontWeight.w900,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        );
-                                      }),
-                                  ],
-                                ),
-                              ),
-                            ],
+                            ),
                           ),
+                          IconButton(
+                            onPressed: fetchOrderDetail,
+                            icon: const Icon(
+                              Icons.refresh_rounded,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 18),
+                      OrdifyGlassCard(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              orderNumber,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 26,
+                                fontWeight: FontWeight.w900,
+                                shadows: [
+                                  Shadow(
+                                    color: Color(0xFFFFC8C8),
+                                    blurRadius: 9,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              '₹$amount • $source',
+                              style: const TextStyle(
+                                color: Color(0xFFE8FFF2),
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            const SizedBox(height: 18),
+                            Row(
+                              children: [
+                                _Pill(
+                                  text: status.toUpperCase(),
+                                  color: statusColor(status),
+                                ),
+                                const SizedBox(width: 10),
+                                _Pill(
+                                  text: payStatus.toUpperCase(),
+                                  color: paymentColor(payStatus),
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
+                      ),
+                      const SizedBox(height: 16),
+                      OrdifyGlassCard(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Quick Actions',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 20,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                            const SizedBox(height: 14),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _ActionButton(
+                                    icon: Icons.payments_rounded,
+                                    label: 'Payments',
+                                    onTap: id == null
+                                        ? null
+                                        : () async {
+                                            await context.push(
+                                              '/orders/$id/payments',
+                                            );
+                                            await fetchOrderDetail();
+                                          },
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: _ActionButton(
+                                    icon: Icons.picture_as_pdf_rounded,
+                                    label: 'Invoice',
+                                    onTap: id == null
+                                        ? null
+                                        : () async {
+                                            await context.push(
+                                              '/orders/$id/invoice-share',
+                                            );
+                                            await fetchOrderDetail();
+                                          },
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            if (status == 'delivered' &&
+                                (returnEligible || existingReturnId != null))
+                              SizedBox(
+                                width: double.infinity,
+                                child: OutlinedButton.icon(
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: const Color(0xFF34F087),
+                                    side: BorderSide(
+                                      color: Colors.white.withOpacity(0.22),
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 14,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(18),
+                                    ),
+                                  ),
+                                  onPressed: returnEligibilityLoading
+                                      ? null
+                                      : () async {
+                                          final path = existingReturnId != null
+                                              ? '/returns/$existingReturnId'
+                                              : '/returns/request/$id';
+                                          await context.push(path);
+                                          await fetchOrderDetail();
+                                        },
+                                  icon: Icon(
+                                    existingReturnId != null
+                                        ? Icons.visibility_outlined
+                                        : Icons.assignment_return_outlined,
+                                  ),
+                                  label: Text(
+                                    existingReturnId != null
+                                        ? 'View return'
+                                        : 'Request return',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            if (status == 'delivered' &&
+                                returnEligibilityError != null)
+                              TextButton.icon(
+                                onPressed: fetchReturnEligibility,
+                                icon: const Icon(Icons.refresh_rounded),
+                                label: Text(
+                                  'Could not check return eligibility. Retry: $returnEligibilityError',
+                                  textAlign: TextAlign.left,
+                                ),
+                              ),
+                            const SizedBox(height: 10),
+                            SizedBox(
+                              width: double.infinity,
+                              child: OutlinedButton.icon(
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: const Color(0xFF34F087),
+                                  side: BorderSide(
+                                    color: Colors.white.withOpacity(0.22),
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 14,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(18),
+                                  ),
+                                ),
+                                onPressed: openStatusSheet,
+                                icon: const Icon(Icons.swap_horiz_rounded),
+                                label: const Text(
+                                  'Change Stage',
+                                  style: TextStyle(fontWeight: FontWeight.w900),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      OrdifyGlassCard(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Customer',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 20,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            if (currentCustomer == null)
+                              const Text(
+                                'No customer details',
+                                style: TextStyle(color: Color(0xFFE8FFF2)),
+                              )
+                            else ...[
+                              Text(
+                                '${currentCustomer['display_name'] ?? currentCustomer['instagram_username'] ?? 'Customer'}',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 16,
+                                ),
+                              ),
+                              if (currentCustomer['instagram_username'] != null)
+                                Text(
+                                  '@${currentCustomer['instagram_username']}',
+                                  style: const TextStyle(
+                                    color: Color(0xFFE8FFF2),
+                                  ),
+                                ),
+                              if (currentCustomer['phone'] != null)
+                                Text(
+                                  'Phone: ${currentCustomer['phone']}',
+                                  style: const TextStyle(
+                                    color: Color(0xFFE8FFF2),
+                                  ),
+                                ),
+                              if (currentCustomer['email'] != null)
+                                Text(
+                                  'Email: ${currentCustomer['email']}',
+                                  style: const TextStyle(
+                                    color: Color(0xFFE8FFF2),
+                                  ),
+                                ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      OrdifyGlassCard(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Items',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 20,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            if (items.isEmpty)
+                              const Text(
+                                'No items found',
+                                style: TextStyle(color: Color(0xFFE8FFF2)),
+                              )
+                            else
+                              ...items.map((item) {
+                                final itemMap = Map<String, dynamic>.from(
+                                  item as Map,
+                                );
+
+                                return Container(
+                                  margin: const EdgeInsets.only(bottom: 10),
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.06),
+                                    borderRadius: BorderRadius.circular(18),
+                                    border: Border.all(
+                                      color: Colors.white.withOpacity(0.15),
+                                    ),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.inventory_2_rounded,
+                                        color: Color(0xFF34F087),
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Expanded(
+                                        child: Text(
+                                          'Product: ${itemMap['product_id']}',
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.w800,
+                                          ),
+                                        ),
+                                      ),
+                                      Text(
+                                        'x${itemMap['quantity']}',
+                                        style: const TextStyle(
+                                          color: Color(0xFFE8FFF2),
+                                          fontWeight: FontWeight.w900,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }),
+                          ],
+                        ),
+                      ),
+                      if (currentOrder.containsKey('subtotal')) ...[
+                        const SizedBox(height: 16),
+                        OrderPriceBreakdown.fromOrder(currentOrder),
+                      ],
+                    ],
+                  ),
+                ),
         ),
       ),
     );
@@ -594,19 +677,14 @@ class _ActionButton extends StatelessWidget {
         backgroundColor: const Color(0xFF34F087),
         foregroundColor: Colors.black,
         padding: const EdgeInsets.symmetric(vertical: 15),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(18),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
       ),
       onPressed: onTap,
       child: Column(
         children: [
           Icon(icon),
           const SizedBox(height: 4),
-          Text(
-            label,
-            style: const TextStyle(fontWeight: FontWeight.w900),
-          ),
+          Text(label, style: const TextStyle(fontWeight: FontWeight.w900)),
         ],
       ),
     );
@@ -614,10 +692,7 @@ class _ActionButton extends StatelessWidget {
 }
 
 class _Pill extends StatelessWidget {
-  const _Pill({
-    required this.text,
-    required this.color,
-  });
+  const _Pill({required this.text, required this.color});
 
   final String text;
   final Color color;

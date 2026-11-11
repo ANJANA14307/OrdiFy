@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart' as dio;
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -7,10 +8,55 @@ import 'error_handler.dart';
 class ApiClient {
   late final dio.Dio dioClient;
 
-  static const String _baseUrl = String.fromEnvironment(
+  static const String _configuredBaseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'http://localhost:8000',
   );
+
+  static String? get configurationError {
+    final value = _configuredBaseUrl.trim();
+    if (value.isEmpty) {
+      return kReleaseMode
+          ? 'Set API_BASE_URL to the public HTTPS API origin when building a release.'
+          : null;
+    }
+
+    final uri = Uri.tryParse(value);
+    if (uri == null ||
+        !uri.hasAuthority ||
+        !{'http', 'https'}.contains(uri.scheme) ||
+        (uri.path.isNotEmpty && uri.path != '/') ||
+        uri.hasQuery ||
+        uri.hasFragment) {
+      return 'API_BASE_URL must be an absolute HTTP(S) origin without a path, query, or fragment.';
+    }
+
+    if (kReleaseMode &&
+        (uri.scheme != 'https' ||
+            uri.host == 'localhost' ||
+            uri.host == '127.0.0.1' ||
+            uri.host == '::1' ||
+            uri.host.endsWith('.localhost'))) {
+      return 'Release builds require a public HTTPS API_BASE_URL; localhost and plain HTTP are not allowed.';
+    }
+
+    return null;
+  }
+
+  static String get _baseUrl {
+    final error = configurationError;
+    if (error != null) {
+      throw StateError(error);
+    }
+    if (_configuredBaseUrl.trim().isNotEmpty) {
+      return _configuredBaseUrl.trim().replaceFirst(RegExp(r'/+$'), '');
+    }
+    if (kReleaseMode) {
+      throw StateError('Release builds require API_BASE_URL.');
+    }
+    return !kIsWeb && defaultTargetPlatform == TargetPlatform.android
+        ? 'http://10.0.2.2:8000'
+        : 'http://localhost:8000';
+  }
 
   ApiClient() {
     dioClient = dio.Dio(

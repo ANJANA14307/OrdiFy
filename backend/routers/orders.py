@@ -5,6 +5,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 
 from core.auth import get_logged_in_user
 from core.supabase import supabase
+from routers.delivery_fees import calculate_delivery_quote
+from routers.whatsapp_orders import notify_social_order_status
 from schemas.order import OrderCreate, OrderStatusUpdate
 from services.activity_service import create_activity_log
 from services.notification_service import create_notification
@@ -253,6 +255,31 @@ def assert_stock_available_for_items(items: list[dict], user_id: str) -> None:
         if quantity <= 0:
             raise HTTPException(status_code=400, detail="Invalid item quantity")
 
+        variant_code = str(item.get("variant_notes") or "").strip().upper()
+        variant_response = (
+            supabase.table("product_variants")
+            .select("id,stock")
+            .eq("business_id", user_id)
+            .eq("code", variant_code)
+            .eq("product_id", product_id)
+            .eq("is_active", True)
+            .limit(1)
+            .execute()
+            if variant_code
+            else None
+        )
+        if variant_response and variant_response.data:
+            current_stock = int(variant_response.data[0].get("stock") or 0)
+            if current_stock < quantity:
+                raise HTTPException(
+                    status_code=400,
+                    detail=(
+                        f"Not enough stock for {variant_code}. "
+                        f"Available: {current_stock}, required: {quantity}"
+                    ),
+                )
+            continue
+
         product = fetch_product(product_id, user_id)
         current_stock = int(product.get("stock_count") or 0)
 
@@ -278,6 +305,30 @@ def decrement_stock_for_order(order_id: str, user_id: str) -> None:
         product_id = str(item.get("product_id"))
         quantity = int(item.get("quantity") or 0)
 
+        variant_code = str(item.get("variant_notes") or "").strip().upper()
+        variant_response = (
+            supabase.table("product_variants")
+            .select("id,stock")
+            .eq("business_id", user_id)
+            .eq("code", variant_code)
+            .eq("product_id", product_id)
+            .eq("is_active", True)
+            .limit(1)
+            .execute()
+            if variant_code
+            else None
+        )
+        if variant_response and variant_response.data:
+            variant = variant_response.data[0]
+            (
+                supabase.table("product_variants")
+                .update({"stock": int(variant.get("stock") or 0) - quantity})
+                .eq("id", variant["id"])
+                .eq("business_id", user_id)
+                .execute()
+            )
+            continue
+
         product = fetch_product(product_id, user_id)
         current_stock = int(product.get("stock_count") or 0)
 
@@ -298,6 +349,29 @@ def restore_stock_for_order(order_id: str, user_id: str) -> None:
         quantity = int(item.get("quantity") or 0)
 
         if quantity <= 0:
+            continue
+
+        variant_code = str(item.get("variant_notes") or "").strip().upper()
+        variant_response = (
+            supabase.table("product_variants")
+            .select("id,stock")
+            .eq("business_id", user_id)
+            .eq("code", variant_code)
+            .eq("product_id", product_id)
+            .limit(1)
+            .execute()
+            if variant_code
+            else None
+        )
+        if variant_response and variant_response.data:
+            variant = variant_response.data[0]
+            (
+                supabase.table("product_variants")
+                .update({"stock": int(variant.get("stock") or 0) + quantity})
+                .eq("id", variant["id"])
+                .eq("business_id", user_id)
+                .execute()
+            )
             continue
 
         product_response = (
@@ -409,6 +483,37 @@ def create_order(payload: OrderCreate, user=Depends(get_logged_in_user)):
             }
         )
 
+    delivery_fee = 0.0
+    delivery_pincode = clean_optional(payload.delivery_pincode)
+    if delivery_pincode:
+        if len(delivery_pincode) != 6 or not delivery_pincode.isdigit():
+            raise HTTPException(status_code=400, detail="Pincode must be exactly 6 digits")
+        delivery_settings = (
+            supabase.table("delivery_settings")
+            .select("*")
+            .eq("business_id", user_id)
+            .limit(1)
+            .execute()
+        )
+        if not delivery_settings.data:
+            raise HTTPException(
+                status_code=400,
+                detail="Configure delivery charges before adding a delivery pincode",
+            )
+        quote = calculate_delivery_quote(
+            delivery_settings.data[0],
+            delivery_pincode,
+            total_amount,
+        )
+        if not quote["is_deliverable"]:
+            raise HTTPException(status_code=400, detail=quote["message"])
+        delivery_fee = float(quote["delivery_fee"])
+
+    subtotal = total_amount
+    tax_amount = 0.0
+    discount_amount = 0.0
+    total_amount = subtotal + delivery_fee + tax_amount - discount_amount
+
     order_data = {
         "user_id": user_id,
         "customer_id": payload.customer_id,
@@ -416,6 +521,11 @@ def create_order(payload: OrderCreate, user=Depends(get_logged_in_user)):
         "source": payload.source,
         "notes": clean_optional(payload.notes),
         "custom_variant": clean_optional(payload.custom_variant),
+        "delivery_pincode": delivery_pincode,
+        "subtotal": subtotal,
+        "delivery_fee": delivery_fee,
+        "tax_amount": tax_amount,
+        "discount_amount": discount_amount,
         "total_amount": total_amount,
     }
 
@@ -638,8 +748,19 @@ def update_order_status(
         entity_id=order_id,
     )
 
+    whatsapp_message_error = None
+    if new_status in ["shipped", "delivered"]:
+        whatsapp_message_error = notify_social_order_status(
+            business_id=user_id,
+            order_id=order_id,
+            status=new_status,
+            order_number=str(fresh_order.get("order_number") or order_id),
+            total_amount=float(fresh_order.get("total_amount") or 0),
+        )
+
     return {
         "message": "Order status updated successfully",
+        "whatsapp_message_error": whatsapp_message_error,
         "order": detailed_order,
         "customer": detailed_order.get("customer"),
         "items": detailed_order.get("items", []),

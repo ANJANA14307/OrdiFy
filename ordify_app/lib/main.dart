@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'core/network/api_client.dart';
 import 'core/network/error_handler.dart';
 import 'core/router/router.dart';
 
@@ -14,16 +15,36 @@ const String _supabaseAnonKey =
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await Supabase.initialize(
-    url: _supabaseUrl,
-    anonKey: _supabaseAnonKey,
-  );
+  final configurationError = ApiClient.configurationError;
+  if (configurationError != null) {
+    runApp(
+      MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'Configuration error',
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(configurationError),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    return;
+  }
 
-  runApp(
-    const ProviderScope(
-      child: OrdiFyApp(),
-    ),
-  );
+  await Supabase.initialize(url: _supabaseUrl, anonKey: _supabaseAnonKey);
+
+  runApp(const ProviderScope(child: OrdiFyApp()));
 }
 
 class OrdiFyApp extends ConsumerWidget {
@@ -51,16 +72,15 @@ class OrdiFyApp extends ConsumerWidget {
           onSurface: Color(0xFFEAF5F1),
           onPrimary: Color(0xFF09140F),
         ),
-        textTheme: GoogleFonts.interTextTheme(
-          ThemeData.dark().textTheme,
-        ).copyWith(
-          displayLarge: const TextStyle(color: Color(0xFFF1F7F4)),
-          headlineLarge: const TextStyle(color: Color(0xFFF1F7F4)),
-          titleLarge: const TextStyle(color: Color(0xFFF1F7F4)),
-          bodyLarge: const TextStyle(color: Color(0xFFE5EFEA)),
-          bodyMedium: const TextStyle(color: Color(0xFFDDE9E4)),
-          labelLarge: const TextStyle(color: Color(0xFFE5EFEA)),
-        ),
+        textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme)
+            .copyWith(
+              displayLarge: const TextStyle(color: Color(0xFFF1F7F4)),
+              headlineLarge: const TextStyle(color: Color(0xFFF1F7F4)),
+              titleLarge: const TextStyle(color: Color(0xFFF1F7F4)),
+              bodyLarge: const TextStyle(color: Color(0xFFE5EFEA)),
+              bodyMedium: const TextStyle(color: Color(0xFFDDE9E4)),
+              labelLarge: const TextStyle(color: Color(0xFFE5EFEA)),
+            ),
         appBarTheme: const AppBarTheme(
           backgroundColor: Color(0xFF0A120F),
           foregroundColor: Color(0xFFF1F7F4),
@@ -72,9 +92,7 @@ class OrdiFyApp extends ConsumerWidget {
           margin: EdgeInsets.zero,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
-            side: BorderSide(
-              color: Colors.white.withOpacity(0.05),
-            ),
+            side: BorderSide(color: Colors.white.withOpacity(0.05)),
           ),
         ),
         inputDecorationTheme: InputDecorationTheme(
@@ -94,29 +112,19 @@ class OrdiFyApp extends ConsumerWidget {
           ),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(18),
-            borderSide: BorderSide(
-              color: Colors.white.withOpacity(0.08),
-            ),
+            borderSide: BorderSide(color: Colors.white.withOpacity(0.08)),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(18),
-            borderSide: BorderSide(
-              color: Colors.white.withOpacity(0.08),
-            ),
+            borderSide: BorderSide(color: Colors.white.withOpacity(0.08)),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(18),
-            borderSide: const BorderSide(
-              color: Color(0xFF61D7A7),
-              width: 1.5,
-            ),
+            borderSide: const BorderSide(color: Color(0xFF61D7A7), width: 1.5),
           ),
           errorBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(18),
-            borderSide: const BorderSide(
-              color: Color(0xFFFF7B7B),
-              width: 1.3,
-            ),
+            borderSide: const BorderSide(color: Color(0xFFFF7B7B), width: 1.3),
           ),
         ),
       ),

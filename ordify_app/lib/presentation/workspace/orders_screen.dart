@@ -20,6 +20,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
   List<dynamic> products = [];
 
   String selectedStatus = 'all';
+  bool showWhatsAppOnly = false;
   String? updatingOrderId;
 
   final List<String> statuses = const [
@@ -60,13 +61,22 @@ class _OrdersScreenState extends State<OrdersScreen> {
   }
 
   List<dynamic> get filteredOrders {
-    if (selectedStatus == 'all') return orders;
-
     return orders.where((order) {
       final orderMap = Map<String, dynamic>.from(order as Map);
-      return orderMap['status']?.toString() == selectedStatus;
+      final matchesStatus =
+          selectedStatus == 'all' ||
+          orderMap['status']?.toString() == selectedStatus;
+      final matchesSource =
+          !showWhatsAppOnly ||
+          orderMap['source']?.toString().toLowerCase() == 'whatsapp';
+      return matchesStatus && matchesSource;
     }).toList();
   }
+
+  int get whatsAppOrderCount => orders.where((order) {
+    final orderMap = Map<String, dynamic>.from(order as Map);
+    return orderMap['source']?.toString().toLowerCase() == 'whatsapp';
+  }).length;
 
   int countForStatus(String status) {
     if (status == 'all') return orders.length;
@@ -103,15 +113,10 @@ class _OrdersScreenState extends State<OrdersScreen> {
         isScrollControlled: true,
         backgroundColor: const Color(0xFF0B1510),
         shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(
-            top: Radius.circular(32),
-          ),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
         ),
         builder: (_) {
-          return CreateOrderSheet(
-            customers: customers,
-            products: products,
-          );
+          return CreateOrderSheet(customers: customers, products: products);
         },
       );
 
@@ -121,9 +126,9 @@ class _OrdersScreenState extends State<OrdersScreen> {
     } catch (error) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.toString())),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
     }
   }
 
@@ -132,9 +137,9 @@ class _OrdersScreenState extends State<OrdersScreen> {
     final orderId = orderMap['id']?.toString();
 
     if (orderId == null || orderId.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Order ID not found')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Order ID not found')));
       return;
     }
 
@@ -183,26 +188,31 @@ class _OrdersScreenState extends State<OrdersScreen> {
     });
 
     try {
-      await apiClient.patch(
+      final response = await apiClient.patch(
         '/orders/$orderId/status',
-        data: {
-          'status': next,
-        },
+        data: {'status': next},
       );
 
       await fetchOrders();
 
       if (!mounted) return;
 
+      final whatsappError = response.data['whatsapp_message_error']?.toString();
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Order moved to $next')),
+        SnackBar(
+          content: Text(
+            whatsappError == null || whatsappError.isEmpty
+                ? 'Order moved to $next'
+                : 'Order moved to $next. WhatsApp message failed: $whatsappError',
+          ),
+        ),
       );
     } catch (error) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.toString())),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
     } finally {
       if (mounted) {
         setState(() {
@@ -250,11 +260,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
           gradient: RadialGradient(
             center: Alignment.topRight,
             radius: 1.25,
-            colors: [
-              Color(0xFF16C76A),
-              Color(0xFF0A2418),
-              Color(0xFF050807),
-            ],
+            colors: [Color(0xFF16C76A), Color(0xFF0A2418), Color(0xFF050807)],
             stops: [0.0, 0.36, 1.0],
           ),
         ),
@@ -262,126 +268,157 @@ class _OrdersScreenState extends State<OrdersScreen> {
           child: isLoading
               ? const Center(child: CircularProgressIndicator())
               : errorMessage != null
-                  ? Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(18),
-                        child: Text(
-                          errorMessage!,
-                          style: const TextStyle(color: Colors.white),
-                          textAlign: TextAlign.center,
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(18),
+                    child: Text(
+                      errorMessage!,
+                      style: const TextStyle(color: Colors.white),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                )
+              : RefreshIndicator(
+                  onRefresh: fetchOrders,
+                  child: ListView(
+                    padding: const EdgeInsets.fromLTRB(18, 18, 18, 110),
+                    children: [
+                      _Header(
+                        onRefresh: fetchOrders,
+                        onNotifications: () => context.push('/notifications'),
+                        onActivity: () => context.push('/activity'),
+                      ),
+                      const SizedBox(height: 22),
+                      _CommandCard(
+                        total: orders.length,
+                        active: activeCount,
+                        delivered: countForStatus('delivered'),
+                      ),
+                      const SizedBox(height: 24),
+                      const Text(
+                        'Order Pipeline',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 24,
+                          fontWeight: FontWeight.w900,
+                          shadows: [
+                            Shadow(color: Color(0xFFFFD6D6), blurRadius: 12),
+                          ],
                         ),
                       ),
-                    )
-                  : RefreshIndicator(
-                      onRefresh: fetchOrders,
-                      child: ListView(
-                        padding: const EdgeInsets.fromLTRB(18, 18, 18, 110),
-                        children: [
-                          _Header(
-                            onRefresh: fetchOrders,
-                            onNotifications: () =>
-                                context.push('/notifications'),
-                            onActivity: () => context.push('/activity'),
+                      const SizedBox(height: 14),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: OutlinedButton.icon(
+                          onPressed: () async {
+                            await context.push('/returns');
+                            if (mounted) await fetchOrders();
+                          },
+                          icon: const Icon(Icons.assignment_return_outlined),
+                          label: const Text('Returns'),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: FilterChip(
+                          selected: showWhatsAppOnly,
+                          onSelected: (selected) {
+                            setState(() {
+                              showWhatsAppOnly = selected;
+                            });
+                          },
+                          avatar: const Icon(Icons.chat_rounded, size: 17),
+                          label: Text('WhatsApp $whatsAppOrderCount'),
+                          selectedColor: const Color(0xFF34F087),
+                          backgroundColor: Colors.white.withOpacity(0.10),
+                          labelStyle: TextStyle(
+                            color: showWhatsAppOnly
+                                ? Colors.black
+                                : Colors.white,
+                            fontWeight: FontWeight.w900,
                           ),
-                          const SizedBox(height: 22),
-                          _CommandCard(
-                            total: orders.length,
-                            active: activeCount,
-                            delivered: countForStatus('delivered'),
-                          ),
-                          const SizedBox(height: 24),
-                          const Text(
-                            'Order Pipeline',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 24,
-                              fontWeight: FontWeight.w900,
-                              shadows: [
-                                Shadow(
-                                  color: Color(0xFFFFD6D6),
-                                  blurRadius: 12,
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 14),
-                          SizedBox(
-                            height: 46,
-                            child: ListView.separated(
-                              scrollDirection: Axis.horizontal,
-                              itemCount: statuses.length,
-                              separatorBuilder: (_, __) =>
-                                  const SizedBox(width: 10),
-                              itemBuilder: (context, index) {
-                                final status = statuses[index];
-                                final isSelected = selectedStatus == status;
+                          checkmarkColor: Colors.black,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        height: 46,
+                        child: ListView.separated(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: statuses.length,
+                          separatorBuilder: (_, __) =>
+                              const SizedBox(width: 10),
+                          itemBuilder: (context, index) {
+                            final status = statuses[index];
+                            final isSelected = selectedStatus == status;
 
-                                return GestureDetector(
-                                  onTap: () {
-                                    setState(() {
-                                      selectedStatus = status;
-                                    });
-                                  },
-                                  child: AnimatedContainer(
-                                    duration: const Duration(milliseconds: 180),
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 16,
-                                      vertical: 10,
-                                    ),
-                                    decoration: BoxDecoration(
+                            return GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  selectedStatus = status;
+                                });
+                              },
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 180),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 10,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: isSelected
+                                      ? const Color(0xFF34F087)
+                                      : Colors.white.withOpacity(0.10),
+                                  borderRadius: BorderRadius.circular(999),
+                                  border: Border.all(
+                                    color: isSelected
+                                        ? const Color(0xFF34F087)
+                                        : Colors.white.withOpacity(0.20),
+                                  ),
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    '${formatStatus(status)} ${countForStatus(status)}',
+                                    style: TextStyle(
                                       color: isSelected
-                                          ? const Color(0xFF34F087)
-                                          : Colors.white.withOpacity(0.10),
-                                      borderRadius: BorderRadius.circular(999),
-                                      border: Border.all(
-                                        color: isSelected
-                                            ? const Color(0xFF34F087)
-                                            : Colors.white.withOpacity(0.20),
-                                      ),
-                                    ),
-                                    child: Center(
-                                      child: Text(
-                                        '${formatStatus(status)} ${countForStatus(status)}',
-                                        style: TextStyle(
-                                          color: isSelected
-                                              ? Colors.black
-                                              : Colors.white,
-                                          fontWeight: FontWeight.w900,
-                                          fontSize: 13,
-                                        ),
-                                      ),
+                                          ? Colors.black
+                                          : Colors.white,
+                                      fontWeight: FontWeight.w900,
+                                      fontSize: 13,
                                     ),
                                   ),
-                                );
-                              },
-                            ),
-                          ),
-                          const SizedBox(height: 18),
-                          if (visibleOrders.isEmpty)
-                            const _EmptyOrders()
-                          else
-                            ...visibleOrders.map((order) {
-                              final orderMap =
-                                  Map<String, dynamic>.from(order as Map);
-
-                              final status =
-                                  orderMap['status']?.toString() ?? 'new';
-
-                              return _OrderCard(
-                                order: orderMap,
-                                statusColor: statusColor(status),
-                                nextActionLabel: nextActionLabel(status),
-                                hasNextAction: nextStatus(status) != null,
-                                isUpdating: updatingOrderId ==
-                                    orderMap['id']?.toString(),
-                                onTap: () => openOrderDetail(orderMap),
-                                onNextAction: () =>
-                                    moveOrderToNextStatus(orderMap),
-                              );
-                            }),
-                        ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
                       ),
-                    ),
+                      const SizedBox(height: 18),
+                      if (visibleOrders.isEmpty)
+                        const _EmptyOrders()
+                      else
+                        ...visibleOrders.map((order) {
+                          final orderMap = Map<String, dynamic>.from(
+                            order as Map,
+                          );
+
+                          final status =
+                              orderMap['status']?.toString() ?? 'new';
+
+                          return _OrderCard(
+                            order: orderMap,
+                            statusColor: statusColor(status),
+                            nextActionLabel: nextActionLabel(status),
+                            hasNextAction: nextStatus(status) != null,
+                            isUpdating:
+                                updatingOrderId == orderMap['id']?.toString(),
+                            onTap: () => openOrderDetail(orderMap),
+                            onNextAction: () => moveOrderToNextStatus(orderMap),
+                          );
+                        }),
+                    ],
+                  ),
+                ),
         ),
       ),
     );
@@ -440,12 +477,7 @@ class _Header extends StatelessWidget {
                   color: Colors.white,
                   fontSize: 27,
                   fontWeight: FontWeight.w900,
-                  shadows: [
-                    Shadow(
-                      color: Color(0xFFFFC8C8),
-                      blurRadius: 9,
-                    ),
-                  ],
+                  shadows: [Shadow(color: Color(0xFFFFC8C8), blurRadius: 9)],
                 ),
               ),
             ],
@@ -494,12 +526,7 @@ class _CommandCard extends StatelessWidget {
               color: Colors.white,
               fontSize: 25,
               fontWeight: FontWeight.w900,
-              shadows: [
-                Shadow(
-                  color: Color(0xFFFFD6D6),
-                  blurRadius: 12,
-                ),
-              ],
+              shadows: [Shadow(color: Color(0xFFFFD6D6), blurRadius: 12)],
             ),
           ),
           const SizedBox(height: 8),
@@ -585,9 +612,7 @@ class _MetricTile extends StatelessWidget {
                 color: Colors.white,
                 fontSize: 26,
                 fontWeight: FontWeight.w900,
-                shadows: [
-                  Shadow(color: Color(0xFFFFD6D6), blurRadius: 8),
-                ],
+                shadows: [Shadow(color: Color(0xFFFFD6D6), blurRadius: 8)],
               ),
             ),
           ),
@@ -671,10 +696,7 @@ class _OrderCard extends StatelessWidget {
                             fontWeight: FontWeight.w900,
                             fontSize: 17,
                             shadows: [
-                              Shadow(
-                                color: Color(0xFFFFC8C8),
-                                blurRadius: 8,
-                              ),
+                              Shadow(color: Color(0xFFFFC8C8), blurRadius: 8),
                             ],
                           ),
                         ),
@@ -735,9 +757,7 @@ class _OrderCard extends StatelessWidget {
                           )
                         : Text(
                             nextActionLabel,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w900,
-                            ),
+                            style: const TextStyle(fontWeight: FontWeight.w900),
                           ),
                   ),
                 ),
@@ -758,11 +778,7 @@ class _EmptyOrders extends StatelessWidget {
     return OrdifyGlassCard(
       child: const Column(
         children: [
-          Icon(
-            Icons.receipt_long_outlined,
-            size: 58,
-            color: Color(0xFF34F087),
-          ),
+          Icon(Icons.receipt_long_outlined, size: 58, color: Color(0xFF34F087)),
           SizedBox(height: 16),
           Text(
             'No orders here',
@@ -810,6 +826,7 @@ class _CreateOrderSheetState extends State<CreateOrderSheet> {
   final quantityController = TextEditingController(text: '1');
   final notesController = TextEditingController();
   final variantController = TextEditingController();
+  final deliveryPincodeController = TextEditingController();
 
   String source = 'manual';
 
@@ -850,16 +867,16 @@ class _CreateOrderSheetState extends State<CreateOrderSheet> {
     final product = selectedProduct;
 
     if (customer == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Select a customer')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Select a customer')));
       return;
     }
 
     if (product == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Select a product')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Select a product')));
       return;
     }
 
@@ -887,6 +904,8 @@ class _CreateOrderSheetState extends State<CreateOrderSheet> {
           'custom_variant': variantController.text.trim().isEmpty
               ? null
               : variantController.text.trim(),
+          if (deliveryPincodeController.text.trim().isNotEmpty)
+            'delivery_pincode': deliveryPincodeController.text.trim(),
           'items': [
             {
               'product_id': product['id'],
@@ -895,7 +914,7 @@ class _CreateOrderSheetState extends State<CreateOrderSheet> {
               'variant_notes': variantController.text.trim().isEmpty
                   ? null
                   : variantController.text.trim(),
-            }
+            },
           ],
         },
       );
@@ -906,9 +925,9 @@ class _CreateOrderSheetState extends State<CreateOrderSheet> {
     } catch (error) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.toString())),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
     } finally {
       if (mounted) {
         setState(() => isSubmitting = false);
@@ -921,6 +940,7 @@ class _CreateOrderSheetState extends State<CreateOrderSheet> {
     quantityController.dispose();
     notesController.dispose();
     variantController.dispose();
+    deliveryPincodeController.dispose();
     super.dispose();
   }
 
@@ -940,10 +960,9 @@ class _CreateOrderSheetState extends State<CreateOrderSheet> {
             borderSide: BorderSide(color: Color(0xFF34F087), width: 2),
           ),
         ),
-        textTheme: Theme.of(context).textTheme.apply(
-              bodyColor: Colors.white,
-              displayColor: Colors.white,
-            ),
+        textTheme: Theme.of(
+          context,
+        ).textTheme.apply(bodyColor: Colors.white, displayColor: Colors.white),
       ),
       child: Padding(
         padding: EdgeInsets.only(
@@ -971,12 +990,7 @@ class _CreateOrderSheetState extends State<CreateOrderSheet> {
                   color: Colors.white,
                   fontSize: 24,
                   fontWeight: FontWeight.w900,
-                  shadows: [
-                    Shadow(
-                      color: Color(0xFFFFC8C8),
-                      blurRadius: 8,
-                    ),
-                  ],
+                  shadows: [Shadow(color: Color(0xFFFFC8C8), blurRadius: 8)],
                 ),
               ),
               const SizedBox(height: 18),
@@ -985,12 +999,11 @@ class _CreateOrderSheetState extends State<CreateOrderSheet> {
                 isExpanded: true,
                 menuMaxHeight: 320,
                 dropdownColor: const Color(0xFF0B1510),
-                decoration: const InputDecoration(
-                  labelText: 'Customer',
-                ),
+                decoration: const InputDecoration(labelText: 'Customer'),
                 items: customers.map((customer) {
                   final id = customer['id']?.toString();
-                  final name = customer['display_name']?.toString() ??
+                  final name =
+                      customer['display_name']?.toString() ??
                       customer['instagram_username']?.toString() ??
                       customer['email']?.toString() ??
                       'Customer';
@@ -1016,9 +1029,7 @@ class _CreateOrderSheetState extends State<CreateOrderSheet> {
                 isExpanded: true,
                 menuMaxHeight: 320,
                 dropdownColor: const Color(0xFF0B1510),
-                decoration: const InputDecoration(
-                  labelText: 'Product',
-                ),
+                decoration: const InputDecoration(labelText: 'Product'),
                 items: products.map((product) {
                   final id = product['id']?.toString();
                   final name = product['name']?.toString() ?? 'Product';
@@ -1045,18 +1056,14 @@ class _CreateOrderSheetState extends State<CreateOrderSheet> {
                 controller: quantityController,
                 keyboardType: TextInputType.number,
                 style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(
-                  labelText: 'Quantity',
-                ),
+                decoration: const InputDecoration(labelText: 'Quantity'),
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
                 value: source,
                 isExpanded: true,
                 dropdownColor: const Color(0xFF0B1510),
-                decoration: const InputDecoration(
-                  labelText: 'Order Source',
-                ),
+                decoration: const InputDecoration(labelText: 'Order Source'),
                 items: const [
                   DropdownMenuItem(value: 'manual', child: Text('Manual')),
                   DropdownMenuItem(value: 'dm', child: Text('Instagram DM')),
@@ -1073,6 +1080,17 @@ class _CreateOrderSheetState extends State<CreateOrderSheet> {
               ),
               const SizedBox(height: 12),
               TextField(
+                controller: deliveryPincodeController,
+                keyboardType: TextInputType.number,
+                maxLength: 6,
+                style: const TextStyle(color: Colors.white),
+                decoration: const InputDecoration(
+                  labelText: 'Delivery Pincode (optional)',
+                  counterText: '',
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
                 controller: variantController,
                 style: const TextStyle(color: Colors.white),
                 decoration: const InputDecoration(
@@ -1084,9 +1102,7 @@ class _CreateOrderSheetState extends State<CreateOrderSheet> {
                 controller: notesController,
                 maxLines: 3,
                 style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(
-                  labelText: 'Notes',
-                ),
+                decoration: const InputDecoration(labelText: 'Notes'),
               ),
               const SizedBox(height: 18),
               SizedBox(

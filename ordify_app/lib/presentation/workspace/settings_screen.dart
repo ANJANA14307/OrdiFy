@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/network/api_client.dart';
+import '../../features/delivery_fees/delivery_settings_screen.dart';
 import 'ordify_workspace_widgets.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -80,10 +81,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       final updatedProfile = Map<String, dynamic>.from(data['profile'] ?? {});
 
       setState(() {
-        profile = {
-          ...profile,
-          ...updatedProfile,
-        };
+        profile = {...profile, ...updatedProfile};
         isSaving = false;
       });
 
@@ -127,10 +125,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           content: Text(
             'You can login again with the correct account after signing out.',
-            style: GoogleFonts.inter(
-              color: Colors.white60,
-              height: 1.4,
-            ),
+            style: GoogleFonts.inter(color: Colors.white60, height: 1.4),
           ),
           actions: [
             TextButton(
@@ -194,20 +189,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
           gradient: RadialGradient(
             center: Alignment.topRight,
             radius: 1.25,
-            colors: [
-              Color(0xFF16C76A),
-              Color(0xFF0A2418),
-              Color(0xFF050807),
-            ],
+            colors: [Color(0xFF16C76A), Color(0xFF0A2418), Color(0xFF050807)],
             stops: [0.0, 0.36, 1.0],
           ),
         ),
         child: SafeArea(
           child: isLoading
               ? const Center(
-                  child: CircularProgressIndicator(
-                    color: Color(0xFF34F087),
-                  ),
+                  child: CircularProgressIndicator(color: Color(0xFF34F087)),
                 )
               : RefreshIndicator(
                   color: const Color(0xFF34F087),
@@ -229,14 +218,123 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                       const SizedBox(height: 18),
 
+                      InkWell(
+                        onTap: () => context.push('/instagram-tools'),
+                        borderRadius: BorderRadius.circular(26),
+                        child: OrdifyGlassCard(
+                          child: Row(
+                            children: [
+                              Container(
+                                height: 52,
+                                width: 52,
+                                decoration: BoxDecoration(
+                                  color: const Color(
+                                    0xFFE59AFF,
+                                  ).withOpacity(0.14),
+                                  borderRadius: BorderRadius.circular(18),
+                                ),
+                                child: const Icon(
+                                  Icons.camera_alt_rounded,
+                                  color: Color(0xFFE59AFF),
+                                ),
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Instagram Tools',
+                                      style: GoogleFonts.inter(
+                                        color: Colors.white,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w900,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      'Share tracked catalog links and create product captions.',
+                                      style: GoogleFonts.inter(
+                                        color: Colors.white60,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const Icon(
+                                Icons.chevron_right_rounded,
+                                color: Colors.white70,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 18),
+
+                      InkWell(
+                        onTap: () => context.push('/whatsapp-ordering'),
+                        borderRadius: BorderRadius.circular(26),
+                        child: OrdifyGlassCard(
+                          child: Row(
+                            children: [
+                              Container(
+                                height: 52,
+                                width: 52,
+                                decoration: BoxDecoration(
+                                  color: const Color(
+                                    0xFF34F087,
+                                  ).withOpacity(0.14),
+                                  borderRadius: BorderRadius.circular(18),
+                                ),
+                                child: const Icon(
+                                  Icons.chat_rounded,
+                                  color: Color(0xFF34F087),
+                                ),
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'WhatsApp Ordering',
+                                      style: GoogleFonts.inter(
+                                        color: Colors.white,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w900,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      'Set up order messages and manage incoming requests.',
+                                      style: GoogleFonts.inter(
+                                        color: Colors.white60,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const Icon(
+                                Icons.chevron_right_rounded,
+                                color: Colors.white70,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 18),
+
                       OrdifyGlassCard(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const _GlowText(
-                              'Business Profile',
-                              fontSize: 24,
-                            ),
+                            const _GlowText('Business Profile', fontSize: 24),
                             const SizedBox(height: 8),
                             Text(
                               'Manage your store identity and account details.',
@@ -257,8 +355,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                     borderRadius: BorderRadius.circular(22),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: const Color(0xFF34F087)
-                                            .withOpacity(0.35),
+                                        color: const Color(
+                                          0xFF34F087,
+                                        ).withOpacity(0.35),
                                         blurRadius: 22,
                                       ),
                                     ],
@@ -304,10 +403,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const _GlowText(
-                              'Edit Details',
-                              fontSize: 22,
-                            ),
+                            const _GlowText('Edit Details', fontSize: 22),
                             const SizedBox(height: 16),
                             _InputField(
                               controller: businessController,
@@ -362,14 +458,129 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                       const SizedBox(height: 18),
 
+                      InkWell(
+                        onTap: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => const DeliverySettingsScreen(),
+                            ),
+                          );
+                        },
+                        borderRadius: BorderRadius.circular(26),
+                        child: OrdifyGlassCard(
+                          child: Row(
+                            children: [
+                              Container(
+                                height: 52,
+                                width: 52,
+                                decoration: BoxDecoration(
+                                  color: const Color(
+                                    0xFF34F087,
+                                  ).withOpacity(0.14),
+                                  borderRadius: BorderRadius.circular(18),
+                                ),
+                                child: const Icon(
+                                  Icons.local_shipping_outlined,
+                                  color: Color(0xFF34F087),
+                                ),
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Delivery Charges',
+                                      style: GoogleFonts.inter(
+                                        color: Colors.white,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w900,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      'Set fees, delivery zones, and service areas.',
+                                      style: GoogleFonts.inter(
+                                        color: Colors.white60,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const Icon(
+                                Icons.chevron_right_rounded,
+                                color: Colors.white70,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 18),
+
+                      InkWell(
+                        onTap: () => context.push('/return-policy'),
+                        borderRadius: BorderRadius.circular(26),
+                        child: OrdifyGlassCard(
+                          child: Row(
+                            children: [
+                              Container(
+                                height: 52,
+                                width: 52,
+                                decoration: BoxDecoration(
+                                  color: const Color(
+                                    0xFF34F087,
+                                  ).withOpacity(0.14),
+                                  borderRadius: BorderRadius.circular(18),
+                                ),
+                                child: const Icon(
+                                  Icons.assignment_return_outlined,
+                                  color: Color(0xFF34F087),
+                                ),
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Return Policy',
+                                      style: GoogleFonts.inter(
+                                        color: Colors.white,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w900,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      'Set return windows, conditions, refunds, and exchanges.',
+                                      style: GoogleFonts.inter(
+                                        color: Colors.white60,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const Icon(
+                                Icons.chevron_right_rounded,
+                                color: Colors.white70,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 18),
+
                       OrdifyGlassCard(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const _GlowText(
-                              'Account Info',
-                              fontSize: 22,
-                            ),
+                            const _GlowText('Account Info', fontSize: 22),
                             const SizedBox(height: 14),
                             _InfoRow(
                               icon: Icons.email_rounded,
@@ -462,10 +673,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 }
 
 class _Header extends StatelessWidget {
-  const _Header({
-    required this.onBack,
-    required this.onRefresh,
-  });
+  const _Header({required this.onBack, required this.onRefresh});
 
   final VoidCallback onBack;
   final VoidCallback onRefresh;
@@ -476,10 +684,7 @@ class _Header extends StatelessWidget {
       children: [
         IconButton(
           onPressed: onBack,
-          icon: const Icon(
-            Icons.arrow_back_rounded,
-            color: Colors.white,
-          ),
+          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
         ),
         const SizedBox(width: 8),
         const Expanded(
@@ -493,19 +698,13 @@ class _Header extends StatelessWidget {
                   fontWeight: FontWeight.w700,
                 ),
               ),
-              _GlowText(
-                'Settings',
-                fontSize: 26,
-              ),
+              _GlowText('Settings', fontSize: 26),
             ],
           ),
         ),
         IconButton(
           onPressed: onRefresh,
-          icon: const Icon(
-            Icons.refresh_rounded,
-            color: Colors.white,
-          ),
+          icon: const Icon(Icons.refresh_rounded, color: Colors.white),
         ),
       ],
     );
@@ -532,10 +731,7 @@ class _InputField extends StatelessWidget {
         fontWeight: FontWeight.w800,
       ),
       decoration: InputDecoration(
-        prefixIcon: Icon(
-          icon,
-          color: const Color(0xFF34F087),
-        ),
+        prefixIcon: Icon(icon, color: const Color(0xFF34F087)),
         labelText: label,
         labelStyle: GoogleFonts.inter(
           color: const Color(0xFFE8FFF2),
@@ -545,16 +741,11 @@ class _InputField extends StatelessWidget {
         fillColor: Colors.white.withOpacity(0.06),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(18),
-          borderSide: BorderSide(
-            color: Colors.white.withOpacity(0.16),
-          ),
+          borderSide: BorderSide(color: Colors.white.withOpacity(0.16)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(18),
-          borderSide: const BorderSide(
-            color: Color(0xFF34F087),
-            width: 1.4,
-          ),
+          borderSide: const BorderSide(color: Color(0xFF34F087), width: 1.4),
         ),
       ),
     );
@@ -581,9 +772,7 @@ class _InfoRow extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.06),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.14),
-        ),
+        border: Border.all(color: Colors.white.withOpacity(0.14)),
       ),
       child: Row(
         children: [
@@ -615,9 +804,7 @@ class _InfoRow extends StatelessWidget {
 }
 
 class _ErrorCard extends StatelessWidget {
-  const _ErrorCard({
-    required this.message,
-  });
+  const _ErrorCard({required this.message});
 
   final String message;
 
@@ -627,10 +814,7 @@ class _ErrorCard extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       child: Row(
         children: [
-          const Icon(
-            Icons.error_outline_rounded,
-            color: Colors.redAccent,
-          ),
+          const Icon(Icons.error_outline_rounded, color: Colors.redAccent),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
@@ -649,11 +833,7 @@ class _ErrorCard extends StatelessWidget {
 }
 
 class _GlowText extends StatelessWidget {
-  const _GlowText(
-    this.text, {
-    required this.fontSize,
-    this.soft = false,
-  });
+  const _GlowText(this.text, {required this.fontSize, this.soft = false});
 
   final String text;
   final double fontSize;

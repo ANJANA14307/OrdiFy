@@ -1,9 +1,17 @@
+import io
+import logging
+
 from fastapi import HTTPException, UploadFile
+from starlette.concurrency import run_in_threadpool
 import cloudinary
 import cloudinary.uploader
 
 from core.config import settings
 
+
+logger = logging.getLogger(__name__)
+
+MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024
 
 ALLOWED_IMAGE_TYPES = {
     "image/jpeg",
@@ -49,14 +57,23 @@ async def upload_product_image(file: UploadFile, user_id: str) -> dict:
         )
 
     try:
-        upload_result = cloudinary.uploader.upload(
-            file.file,
-            folder=f"ordify/products/{user_id}",
-            resource_type="image",
-            overwrite=False,
-            unique_filename=True,
-            use_filename=True,
-        )
+        image_bytes = await file.read(MAX_IMAGE_SIZE_BYTES + 1)
+        if len(image_bytes) > MAX_IMAGE_SIZE_BYTES:
+            raise HTTPException(
+                status_code=413,
+                detail="Image files must be 10 MB or smaller",
+            )
+
+        with io.BytesIO(image_bytes) as image_file:
+            upload_result = await run_in_threadpool(
+                cloudinary.uploader.upload,
+                image_file,
+                folder=f"ordify/products/{user_id}",
+                resource_type="image",
+                overwrite=False,
+                unique_filename=True,
+                use_filename=True,
+            )
 
         secure_url = upload_result.get("secure_url")
         public_id = upload_result.get("public_id")
@@ -75,8 +92,9 @@ async def upload_product_image(file: UploadFile, user_id: str) -> dict:
     except HTTPException:
         raise
 
-    except Exception as exc:
+    except Exception:
+        logger.exception("Cloudinary image upload failed")
         raise HTTPException(
             status_code=500,
-            detail=f"Image upload failed: {str(exc)}",
-        )
+            detail="Image upload failed",
+        ) from None

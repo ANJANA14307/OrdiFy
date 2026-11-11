@@ -4,7 +4,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/network/api_client.dart';
-import 'ordify_workspace_widgets.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -14,13 +13,29 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  bool _isLoading = false;
+  bool _isLoading = true;
   bool _instagramConnected = false;
-
-  String _instagramUsername = 'Not connected';
-
+  String? _loadError;
+  String? _instagramError;
+  String _instagramUsername = '';
   int _productCount = 0;
   int _lowStockCount = 0;
+
+  String get _businessName {
+    final user = Supabase.instance.client.auth.currentUser;
+    final metadata = user?.userMetadata;
+    final businessName = metadata?['business_name']?.toString().trim();
+    if (businessName != null && businessName.isNotEmpty) return businessName;
+
+    final displayName = metadata?['full_name']?.toString().trim();
+    if (displayName != null && displayName.isNotEmpty) {
+      return displayName.split(' ').first;
+    }
+
+    final emailName = user?.email?.split('@').first.trim();
+    if (emailName != null && emailName.isNotEmpty) return emailName;
+    return 'there';
+  }
 
   @override
   void initState() {
@@ -35,281 +50,297 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _loadDashboard() async {
-    setState(() => _isLoading = true);
-
-    final token = Supabase.instance.client.auth.currentSession?.accessToken;
-    debugPrint('SUPABASE TOKEN: $token');
+    if (mounted) {
+      setState(() {
+        _isLoading = true;
+        _loadError = null;
+        _instagramError = null;
+      });
+    }
 
     try {
-      final productResponse = await apiClient.get('/products?page=1&limit=50');
-
-      final products = productResponse.data['products'] ?? [];
-
-      int lowStock = 0;
-
-      for (final product in products) {
-        final stock = _toInt(product['stock_count']);
-        final threshold = _toInt(
-          product['low_stock_threshold'],
-          fallback: 5,
-        );
-
-        if (stock <= threshold) {
-          lowStock++;
-        }
+      final productResponse = await apiClient.get(
+        '/products',
+        queryParameters: {'page': 1, 'limit': 50},
+      );
+      final data = productResponse.data;
+      final rawProducts = data is Map ? data['products'] : null;
+      if (rawProducts is! List) {
+        throw const FormatException('The products response is invalid.');
       }
 
-      bool connected = false;
-      String username = 'Not connected';
+      var lowStockCount = 0;
+      for (final product in rawProducts.whereType<Map>()) {
+        final stock = _toInt(product['stock_count']);
+        final threshold = _toInt(product['low_stock_threshold'], fallback: 5);
+        if (stock <= threshold) lowStockCount++;
+      }
 
+      var instagramConnected = false;
+      var instagramUsername = '';
+      String? instagramError;
       try {
-        final instaResponse = await apiClient.get('/instagram/status');
-        final data = instaResponse.data;
-
-        connected = data['connected'] == true ||
-            data['is_connected'] == true ||
-            data['instagram_connected'] == true ||
-            data['instagram_username'] != null;
-
-        username = data['instagram_username']?.toString() ??
-            data['username']?.toString() ??
-            'Connected';
-      } catch (_) {
-        connected = false;
+        final response = await apiClient.get('/instagram/status');
+        final status = response.data;
+        if (status is! Map) {
+          throw const FormatException(
+            'The Instagram status response is invalid.',
+          );
+        }
+        instagramConnected =
+            status['connected'] == true ||
+            status['is_connected'] == true ||
+            status['instagram_connected'] == true ||
+            status['instagram_username'] != null;
+        instagramUsername =
+            status['instagram_username']?.toString() ??
+            status['username']?.toString() ??
+            '';
+      } catch (error) {
+        instagramError = error.toString();
       }
 
       if (!mounted) return;
-
       setState(() {
-        _productCount = products.length;
-        _lowStockCount = lowStock;
-        _instagramConnected = connected;
-        _instagramUsername = connected ? '@$username' : 'Not connected';
+        _productCount = rawProducts.length;
+        _lowStockCount = lowStockCount;
+        _instagramConnected = instagramConnected;
+        _instagramUsername = instagramUsername;
+        _instagramError = instagramError;
+        _isLoading = false;
       });
-    } catch (e) {
-      debugPrint('DASHBOARD LOAD ERROR: $e');
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
-  }
-
-  Future<void> _connectInstagram() async {
-    try {
-      await apiClient.post('/instagram/connect');
-      await _loadDashboard();
-    } catch (e) {
-      debugPrint('INSTAGRAM CONNECT ERROR: $e');
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _loadError = error.toString();
+        _isLoading = false;
+      });
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final storeHealth = _productCount == 0
-        ? 0
-        : (((_productCount - _lowStockCount) / _productCount) * 100).round();
-
     return Scaffold(
-      backgroundColor: const Color(0xFF090E0C),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: RadialGradient(
-            center: Alignment.topRight,
-            radius: 1.25,
-            colors: [
-              Color(0xFF173125),
-              Color(0xFF0B1714),
-              Color(0xFF090E0C),
-            ],
-            stops: [0.0, 0.35, 1.0],
-          ),
+      backgroundColor: const Color(0xFF0B100E),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF0B100E),
+        surfaceTintColor: Colors.transparent,
+        titleSpacing: 22,
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'ORDIFY',
+              style: GoogleFonts.inter(
+                color: const Color(0xFF8EE2B6),
+                fontSize: 10,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 1.7,
+              ),
+            ),
+            Text(
+              'Welcome, $_businessName',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: GoogleFonts.inter(
+                color: const Color(0xFFF0F4F1),
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
         ),
-        child: SafeArea(
-          child: RefreshIndicator(
-            color: ordifyGreen,
-            backgroundColor: const Color(0xFF0B1510),
-            onRefresh: _loadDashboard,
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(18, 18, 18, 130),
-              children: [
-                _GlitterHeader(
-                  isLoading: _isLoading,
-                  onRefresh: _loadDashboard,
+        actions: [
+          IconButton(
+            tooltip: 'Refresh dashboard',
+            onPressed: _isLoading ? null : _loadDashboard,
+            icon: _isLoading
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.refresh_rounded),
+          ),
+          IconButton(
+            tooltip: 'Settings',
+            onPressed: () => context.push('/settings'),
+            icon: const Icon(Icons.settings_outlined),
+          ),
+          PopupMenuButton<String>(
+            tooltip: 'More options',
+            onSelected: (value) {
+              switch (value) {
+                case 'notifications':
+                  context.push('/notifications');
+                case 'activity':
+                  context.push('/activity');
+              }
+            },
+            itemBuilder: (context) => const [
+              PopupMenuItem(
+                value: 'notifications',
+                child: ListTile(
+                  leading: Icon(Icons.notifications_outlined),
+                  title: Text('Notifications'),
+                  contentPadding: EdgeInsets.zero,
                 ),
-                const SizedBox(height: 22),
-                OrdifyGlassCard(
-                  padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+              ),
+              PopupMenuItem(
+                value: 'activity',
+                child: ListTile(
+                  leading: Icon(Icons.history_rounded),
+                  title: Text('Activity'),
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
+      body: SafeArea(
+        top: false,
+        child: RefreshIndicator(
+          color: const Color(0xFF8EE2B6),
+          backgroundColor: const Color(0xFF171E1A),
+          onRefresh: _loadDashboard,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return Align(
+                alignment: Alignment.topCenter,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1120),
+                  child: ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.fromLTRB(22, 20, 22, 132),
                     children: [
-                      const _GlowText(
-                        'Business Command Center',
-                        fontSize: 24,
+                      _WelcomeCard(
+                        name: _businessName,
+                        onAddProduct: () => context.go('/inventory'),
+                        onShareCatalog: () => context.push('/catalog-share'),
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Track your catalog, Instagram connection, and daily operations from one place.',
-                        style: GoogleFonts.inter(
-                          color: const Color(0xFFDCE7E2),
-                          height: 1.4,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
+                      const SizedBox(height: 28),
+                      const _SectionHeading(
+                        title: 'Your store',
+                        subtitle: 'A quick look at your inventory',
+                      ),
+                      const SizedBox(height: 14),
+                      if (_loadError != null)
+                        _LoadErrorCard(
+                          message: _loadError!,
+                          onRetry: _loadDashboard,
+                        )
+                      else
+                        LayoutBuilder(
+                          builder: (context, metricConstraints) {
+                            final columns = metricConstraints.maxWidth < 480
+                                ? 1
+                                : 2;
+                            return GridView.count(
+                              crossAxisCount: columns,
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              mainAxisSpacing: 12,
+                              crossAxisSpacing: 12,
+                              childAspectRatio: columns == 1 ? 3.3 : 4.2,
+                              children: [
+                                _MetricCard(
+                                  title: 'Active products',
+                                  value: _isLoading ? '—' : '$_productCount',
+                                  subtitle: 'In your inventory',
+                                  icon: Icons.inventory_2_outlined,
+                                  accent: const Color(0xFF8EE2B6),
+                                ),
+                                _MetricCard(
+                                  title: 'Needs attention',
+                                  value: _isLoading ? '—' : '$_lowStockCount',
+                                  subtitle: 'Low or out of stock',
+                                  icon: Icons.priority_high_rounded,
+                                  accent: const Color(0xFFF0C878),
+                                ),
+                              ],
+                            );
+                          },
                         ),
+                      const SizedBox(height: 28),
+                      const _SectionHeading(
+                        title: 'Quick actions',
+                        subtitle: 'Get to the tools you use most',
                       ),
-                      const SizedBox(height: 20),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: OrdifyMetricCard(
-                              title: 'Products',
-                              value: '$_productCount',
-                              icon: Icons.inventory_2_rounded,
-                              color: const Color(0xFFEFF7F5),
-                              iconColor: Colors.white,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: OrdifyMetricCard(
-                              title: 'Low Stock',
-                              value: '$_lowStockCount',
-                              icon: Icons.warning_amber_rounded,
-                              color: const Color(0xFFF4F0E7),
-                              iconColor: Colors.white,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: OrdifyMetricCard(
-                              title: 'Health',
-                              value: '$storeHealth%',
-                              icon: Icons.favorite_rounded,
-                              color: const Color(0xFFEFF4FB),
-                              iconColor: Colors.white,
-                            ),
-                          ),
-                        ],
+                      const SizedBox(height: 14),
+                      LayoutBuilder(
+                        builder: (context, actionConstraints) {
+                          final columns = actionConstraints.maxWidth >= 900
+                              ? 4
+                              : actionConstraints.maxWidth >= 600
+                              ? 3
+                              : 2;
+                          return GridView.count(
+                            crossAxisCount: columns,
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            mainAxisSpacing: 12,
+                            crossAxisSpacing: 12,
+                            childAspectRatio: columns == 2 ? 1.65 : 1.35,
+                            children: [
+                              _ActionCard(
+                                title: 'Orders',
+                                subtitle: 'View and manage',
+                                icon: Icons.receipt_long_outlined,
+                                onTap: () => context.go('/orders'),
+                              ),
+                              _ActionCard(
+                                title: 'Inventory',
+                                subtitle: 'Products and stock',
+                                icon: Icons.inventory_2_outlined,
+                                onTap: () => context.go('/inventory'),
+                              ),
+                              _ActionCard(
+                                title: 'Customers',
+                                subtitle: 'Your customer list',
+                                icon: Icons.people_outline_rounded,
+                                onTap: () => context.go('/customers'),
+                              ),
+                              _ActionCard(
+                                title: 'Analytics',
+                                subtitle: 'Business performance',
+                                icon: Icons.query_stats_rounded,
+                                onTap: () => context.push('/analytics'),
+                              ),
+                              _ActionCard(
+                                title: 'WhatsApp orders',
+                                subtitle: 'Social order inbox',
+                                icon: Icons.chat_bubble_outline_rounded,
+                                onTap: () => context.push('/whatsapp-orders'),
+                              ),
+                              _ActionCard(
+                                title: 'Instagram tools',
+                                subtitle: 'Links and replies',
+                                icon: Icons.camera_alt_outlined,
+                                onTap: () => context.push('/instagram-tools'),
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 28),
+                      const _SectionHeading(
+                        title: 'Channels',
+                        subtitle: 'Keep your storefront connected',
+                      ),
+                      const SizedBox(height: 14),
+                      _InstagramStatusCard(
+                        connected: _instagramConnected,
+                        username: _instagramUsername,
+                        error: _instagramError,
+                        onTap: () => context.push('/instagram-tools'),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 18),
-                _InstagramCard(
-                  connected: _instagramConnected,
-                  username: _instagramUsername,
-                  onConnect: _connectInstagram,
-                ),
-                const SizedBox(height: 20),
-                LayoutBuilder(
-                  builder: (context, constraints) {
-                    final isWide = constraints.maxWidth >= 760;
-
-                    final buttons = <Widget>[
-                      _ShortcutTile(
-                        icon: Icons.analytics_rounded,
-                        title: 'Analytics',
-                        color: const Color(0xFFE7F3FF),
-                        onTap: () => context.push('/analytics'),
-                      ),
-                      _ShortcutTile(
-                        icon: Icons.receipt_long_rounded,
-                        title: 'Orders',
-                        color: const Color(0xFFE9F9EE),
-                        onTap: () => context.go('/orders'),
-                      ),
-                      _ShortcutTile(
-                        icon: Icons.inventory_2_rounded,
-                        title: 'Stock',
-                        color: const Color(0xFFF5F3EA),
-                        onTap: () => context.go('/inventory'),
-                      ),
-                      _ShortcutTile(
-                        icon: Icons.people_alt_rounded,
-                        title: 'CRM',
-                        color: const Color(0xFFF2EBFF),
-                        onTap: () => context.go('/customers'),
-                      ),
-                      _ShortcutTile(
-                        icon: Icons.auto_awesome_rounded,
-                        title: 'AI',
-                        color: const Color(0xFFE8F5F0),
-                        onTap: () => context.go('/ai-tools'),
-                      ),
-                    ];
-
-                    if (isWide) {
-                      return Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: Wrap(
-                              spacing: 12,
-                              runSpacing: 12,
-                              children: buttons,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          SizedBox(
-                            width: 192,
-                            child: _SidebarNav(
-                              items: const [
-                                _SidebarItemData(
-                                  title: 'Quick Flow',
-                                  icon: Icons.flash_on_rounded,
-                                  selected: true,
-                                ),
-                                _SidebarItemData(
-                                  title: 'Settings',
-                                  icon: Icons.settings_rounded,
-                                  selected: false,
-                                ),
-                              ],
-                              onTap: (title) {
-                                if (title == 'Settings') {
-                                  context.push('/settings');
-                                }
-                              },
-                            ),
-                          ),
-                        ],
-                      );
-                    }
-
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Wrap(
-                          spacing: 12,
-                          runSpacing: 12,
-                          children: buttons,
-                        ),
-                        const SizedBox(height: 12),
-                        _SidebarNav(
-                          items: const [
-                            _SidebarItemData(
-                              title: 'Quick Flow',
-                              icon: Icons.flash_on_rounded,
-                              selected: true,
-                            ),
-                            _SidebarItemData(
-                              title: 'Settings',
-                              icon: Icons.settings_rounded,
-                              selected: false,
-                            ),
-                          ],
-                          onTap: (title) {
-                            if (title == 'Settings') {
-                              context.push('/settings');
-                            }
-                          },
-                        ),
-                      ],
-                    );
-                  },
-                ),
-              ],
-            ),
+              );
+            },
           ),
         ),
       ),
@@ -317,320 +348,286 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 }
 
-class _GlitterHeader extends StatelessWidget {
-  const _GlitterHeader({
-    required this.isLoading,
-    required this.onRefresh,
+class _WelcomeCard extends StatelessWidget {
+  const _WelcomeCard({
+    required this.name,
+    required this.onAddProduct,
+    required this.onShareCatalog,
   });
 
-  final bool isLoading;
-  final VoidCallback onRefresh;
+  final String name;
+  final VoidCallback onAddProduct;
+  final VoidCallback onShareCatalog;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Container(
-          height: 52,
-          width: 52,
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.07),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: Colors.white.withOpacity(0.08),
-            ),
-          ),
-          child: const Icon(
-            Icons.dashboard_rounded,
-            color: Colors.white,
-            size: 24,
-          ),
-        ),
-        const SizedBox(width: 14),
-        const Expanded(
-          child: Column(
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: const Color(0xFF17231C),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: const Color(0xFF2A3B30)),
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final actions = Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              FilledButton.icon(
+                onPressed: onAddProduct,
+                style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFF8EE2B6),
+                  foregroundColor: const Color(0xFF0D1811),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 13,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                icon: const Icon(Icons.add_rounded, size: 19),
+                label: const Text('Add product'),
+              ),
+              OutlinedButton.icon(
+                onPressed: onShareCatalog,
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFFE7EEE9),
+                  side: const BorderSide(color: Color(0xFF43564A)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 15,
+                    vertical: 13,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                icon: const Icon(Icons.ios_share_rounded, size: 17),
+                label: const Text('Share catalog'),
+              ),
+            ],
+          );
+          final intro = Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Welcome back',
-                style: TextStyle(
-                  color: Color(0xFFE8FFF2),
-                  fontWeight: FontWeight.w700,
-                  fontSize: 12,
+                'YOUR BUSINESS, AT A GLANCE',
+                style: GoogleFonts.inter(
+                  color: const Color(0xFF8EE2B6),
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1.4,
                 ),
               ),
-              _GlowText(
-                'OrdiFy Hub',
-                fontSize: 27,
+              const SizedBox(height: 10),
+              Text(
+                'Good to see you, $name.',
+                style: GoogleFonts.inter(
+                  color: const Color(0xFFF1F5F2),
+                  fontSize: constraints.maxWidth < 480 ? 23 : 29,
+                  height: 1.15,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.5,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Manage products, orders, and customer conversations from one place.',
+                style: GoogleFonts.inter(
+                  color: const Color(0xFFAEBBB2),
+                  height: 1.5,
+                  fontSize: 13,
+                ),
               ),
             ],
+          );
+
+          if (constraints.maxWidth >= 720) {
+            return Row(
+              children: [
+                Expanded(child: intro),
+                const SizedBox(width: 20),
+                actions,
+              ],
+            );
+          }
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [intro, const SizedBox(height: 20), actions],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _SectionHeading extends StatelessWidget {
+  const _SectionHeading({required this.title, required this.subtitle});
+
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: GoogleFonts.inter(
+            color: const Color(0xFFEAF0EC),
+            fontSize: 17,
+            fontWeight: FontWeight.w700,
           ),
         ),
-        if (!isLoading)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.03),
-              borderRadius: BorderRadius.circular(999),
-              border: Border.all(
-                color: Colors.white.withOpacity(0.07),
-              ),
-            ),
-            child: Text(
-              'LIVE',
-              style: GoogleFonts.inter(
-                color: Colors.white70,
-                fontSize: 10,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.8,
-              ),
-            ),
-          )
-        else
-          const SizedBox(
-            height: 20,
-            width: 20,
-            child: CircularProgressIndicator(
-              strokeWidth: 2,
-              color: Colors.white70,
-            ),
+        const SizedBox(height: 3),
+        Text(
+          subtitle,
+          style: GoogleFonts.inter(
+            color: const Color(0xFF89968D),
+            fontSize: 12,
           ),
-        const SizedBox(width: 6),
-        IconButton(
-          onPressed: isLoading ? null : onRefresh,
-          icon: isLoading
-              ? const SizedBox(
-                  height: 22,
-                  width: 22,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: ordifyGreen,
-                  ),
-                )
-              : const Icon(
-                  Icons.refresh_rounded,
-                  color: Colors.white,
-                ),
         ),
       ],
     );
   }
 }
 
-class _InstagramCard extends StatelessWidget {
-  const _InstagramCard({
-    required this.connected,
-    required this.username,
-    required this.onConnect,
+class _MetricCard extends StatelessWidget {
+  const _MetricCard({
+    required this.title,
+    required this.value,
+    required this.subtitle,
+    required this.icon,
+    required this.accent,
   });
 
-  final bool connected;
-  final String username;
-  final VoidCallback onConnect;
+  final String title;
+  final String value;
+  final String subtitle;
+  final IconData icon;
+  final Color accent;
 
   @override
   Widget build(BuildContext context) {
-    final color = connected ? ordifyGreen : ordifyYellow;
-
-    return OrdifyGlassCard(
-      padding: const EdgeInsets.all(18),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: const Color(0xFF151C18),
+        borderRadius: BorderRadius.circular(17),
+        border: Border.all(color: const Color(0xFF26312A)),
+      ),
       child: Row(
         children: [
           Container(
-            height: 54,
-            width: 54,
+            width: 42,
+            height: 42,
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.04),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: Colors.white.withOpacity(0.06),
-              ),
+              color: accent.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(13),
             ),
-            child: Icon(
-              connected ? Icons.verified_rounded : Icons.link_rounded,
-              color: color,
-              size: 24,
-            ),
+            child: Icon(icon, color: accent, size: 21),
           ),
-          const SizedBox(width: 14),
+          const SizedBox(width: 13),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                _GlowText(
-                  connected ? 'Instagram Connected' : 'Instagram Not Connected',
-                  fontSize: 15,
-                  soft: true,
-                ),
-                const SizedBox(height: 4),
                 Text(
-                  username,
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.inter(
-                    color: const Color(0xFFE8FFF2),
+                    color: const Color(0xFFBEC9C1),
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  value,
+                  style: GoogleFonts.inter(
+                    color: const Color(0xFFF0F4F1),
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                Text(
+                  subtitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.inter(
+                    color: const Color(0xFF849087),
+                    fontSize: 10,
                   ),
                 ),
               ],
             ),
           ),
-          TextButton(
-            onPressed: onConnect,
-            child: Text(
-              connected ? 'Refresh' : 'Connect',
-              style: GoogleFonts.inter(
-                color: Colors.white,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
         ],
       ),
     );
   }
 }
 
-class _SidebarItemData {
-  const _SidebarItemData({
+class _ActionCard extends StatelessWidget {
+  const _ActionCard({
     required this.title,
+    required this.subtitle,
     required this.icon,
-    required this.selected,
-  });
-
-  final String title;
-  final IconData icon;
-  final bool selected;
-}
-
-class _SidebarNav extends StatelessWidget {
-  const _SidebarNav({
-    required this.items,
     required this.onTap,
   });
 
-  final List<_SidebarItemData> items;
-  final ValueChanged<String> onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return OrdifyGlassCard(
-      padding: const EdgeInsets.all(14),
-      radius: 22,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Quick Menu',
-            style: GoogleFonts.inter(
-              color: Colors.white70,
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.8,
-            ),
-          ),
-          const SizedBox(height: 12),
-          ...items.map((item) {
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: InkWell(
-                borderRadius: BorderRadius.circular(14),
-                onTap: () => onTap(item.title),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 10,
-                  ),
-                  decoration: BoxDecoration(
-                    color: item.selected
-                        ? Colors.white.withOpacity(0.05)
-                        : Colors.transparent,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(
-                      color: item.selected
-                          ? Colors.white.withOpacity(0.08)
-                          : Colors.transparent,
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        item.icon,
-                        size: 18,
-                        color: item.selected ? Colors.white : Colors.white60,
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          item.title,
-                          style: GoogleFonts.inter(
-                            color: item.selected ? Colors.white : Colors.white60,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            );
-          }),
-        ],
-      ),
-    );
-  }
-}
-
-class _ShortcutTile extends StatelessWidget {
-  const _ShortcutTile({
-    required this.icon,
-    required this.title,
-    required this.color,
-    required this.onTap,
-  });
-
-  final IconData icon;
   final String title;
-  final Color color;
+  final String subtitle;
+  final IconData icon;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: (MediaQuery.sizeOf(context).width - 72) / 2,
-      child: OrdifyGlassCard(
-        padding: const EdgeInsets.all(16),
-        radius: 22,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(22),
-          onTap: onTap,
+    return Material(
+      color: const Color(0xFF151C18),
+      borderRadius: BorderRadius.circular(17),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(17),
+        child: Container(
+          padding: const EdgeInsets.all(15),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(17),
+            border: Border.all(color: const Color(0xFF26312A)),
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Container(
-                height: 42,
-                width: 42,
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.04),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: Colors.white.withOpacity(0.06),
+              Icon(icon, color: const Color(0xFF8EE2B6), size: 22),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.inter(
+                      color: const Color(0xFFEAF0EC),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
-                ),
-                child: Icon(
-                  icon,
-                  color: color.withOpacity(0.9),
-                  size: 20,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                title,
-                style: GoogleFonts.inter(
-                  color: Colors.white,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.inter(
+                      color: const Color(0xFF89968D),
+                      fontSize: 10,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -640,26 +637,130 @@ class _ShortcutTile extends StatelessWidget {
   }
 }
 
-class _GlowText extends StatelessWidget {
-  const _GlowText(
-    this.text, {
-    required this.fontSize,
-    this.soft = false,
+class _InstagramStatusCard extends StatelessWidget {
+  const _InstagramStatusCard({
+    required this.connected,
+    required this.username,
+    required this.error,
+    required this.onTap,
   });
 
-  final String text;
-  final double fontSize;
-  final bool soft;
+  final bool connected;
+  final String username;
+  final String? error;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Text(
-      text,
-      overflow: TextOverflow.ellipsis,
-      style: GoogleFonts.inter(
-        color: const Color(0xFFF1F6F4),
-        fontSize: fontSize,
-        fontWeight: FontWeight.w800,
+    final accent = error != null
+        ? const Color(0xFFF0C878)
+        : connected
+        ? const Color(0xFF8EE2B6)
+        : const Color(0xFFBBC5BE);
+    final title = error != null
+        ? 'Instagram status unavailable'
+        : connected
+        ? 'Instagram connected'
+        : 'Connect Instagram tools';
+    final detail = error != null
+        ? 'Open Instagram tools to check the connection.'
+        : connected
+        ? (username.isEmpty ? 'Your account is ready' : '@$username')
+        : 'Set up catalog links and customer replies.';
+
+    return Material(
+      color: const Color(0xFF151C18),
+      borderRadius: BorderRadius.circular(17),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(17),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(17),
+            border: Border.all(color: const Color(0xFF26312A)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: accent.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(Icons.camera_alt_outlined, color: accent),
+              ),
+              const SizedBox(width: 13),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: GoogleFonts.inter(
+                        color: const Color(0xFFEAF0EC),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      detail,
+                      style: GoogleFonts.inter(
+                        color: const Color(0xFF89968D),
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(
+                Icons.arrow_forward_ios_rounded,
+                color: Color(0xFF89968D),
+                size: 15,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _LoadErrorCard extends StatelessWidget {
+  const _LoadErrorCard({required this.message, required this.onRetry});
+
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF251B16),
+        borderRadius: BorderRadius.circular(17),
+        border: Border.all(color: const Color(0xFF493528)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.cloud_off_outlined, color: Color(0xFFF0C878)),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'Could not load store data: $message',
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+              style: GoogleFonts.inter(
+                color: const Color(0xFFE7D8C6),
+                fontSize: 12,
+                height: 1.4,
+              ),
+            ),
+          ),
+          TextButton(onPressed: onRetry, child: const Text('Retry')),
+        ],
       ),
     );
   }

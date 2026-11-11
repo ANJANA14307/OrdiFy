@@ -1,6 +1,8 @@
 from typing import List, Literal, Optional
 
-from pydantic import BaseModel, Field
+import re
+
+from pydantic import BaseModel, Field, field_validator
 
 
 OrderStatus = Literal[
@@ -16,6 +18,7 @@ OrderSource = Literal[
     "dm",
     "comment",
     "manual",
+    "whatsapp",
 ]
 
 
@@ -31,7 +34,18 @@ class OrderCreate(BaseModel):
     source: OrderSource = "manual"
     notes: Optional[str] = Field(default=None, max_length=1000)
     custom_variant: Optional[str] = Field(default=None, max_length=500)
+    delivery_pincode: Optional[str] = Field(default=None, min_length=6, max_length=6)
     items: List[OrderItemCreate] = Field(..., min_length=1)
+
+    @field_validator("delivery_pincode")
+    @classmethod
+    def validate_delivery_pincode(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return None
+        cleaned = value.strip()
+        if not re.fullmatch(r"\d{6}", cleaned):
+            raise ValueError("Pincode must be exactly 6 digits")
+        return cleaned
 
 
 class OrderStatusUpdate(BaseModel):
